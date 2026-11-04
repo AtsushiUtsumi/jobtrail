@@ -1,0 +1,15 @@
+.env
+data/pg/
+backups/
+
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.import_linter_cache/
+
+node_modules/
+dist/
+*.tsbuildinfo

@@ -1,0 +1,30 @@
+# バックエンドのテスト用。`docker compose -p jobtrail-test -f docker-compose.test.yml run --rm test`
+services:
+  db-test:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: jobtrail
+      POSTGRES_PASSWORD: jobtrail
+      POSTGRES_DB: jobtrail_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobtrail -d jobtrail_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  test:
+    build:
+      context: ./backend
+      target: test
+    environment:
+      DATABASE_URL: postgresql+psycopg://jobtrail:jobtrail@db-test:5432/jobtrail_test
+    volumes:
+      - ./backend/src:/app/src:ro
+      - ./backend/tests:/app/tests:ro
+      - ./backend/migrations:/app/migrations
+    depends_on:
+      db-test:
+        condition: service_healthy
+    command: ["pytest", "-q"]
