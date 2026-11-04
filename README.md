@@ -76,7 +76,7 @@ Node.js を使えない場合や HTTP で接続できない場合は、stdio で
     "jobtrail": {
       "command": "docker",
       "args": [
-        "compose", "-p", "jobtrail", "exec", "-T", "app",
+        "compose", "-p", "jobtrail", "exec", "-T", "backend",
         "python", "-m", "jobtrail.adapters.mcp.stdio"
       ]
     }

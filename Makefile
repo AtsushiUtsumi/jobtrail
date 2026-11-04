@@ -17,7 +17,7 @@ lint:
 	cd frontend && npm run lint && npm run typecheck && npm test
 
 migrate:
-	$(COMPOSE) exec app alembic upgrade head
+	$(COMPOSE) exec backend alembic upgrade head
 
 backup:
 	mkdir -p backups

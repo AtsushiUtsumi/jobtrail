@@ -58,18 +58,18 @@
 | サービス | 内容 | 公開 |
 |---|---|---|
 | `db` | `postgres:17`。データは `./data/pg` にバインドマウント。healthcheck は `pg_isready` | `expose: 5432`（ホストに出さない） |
-| `app` | FastAPI。起動時に `alembic upgrade head` を実行。healthcheck は `GET /api/health` | `expose: 8000`（ホストに出さない） |
-| `web` | nginx。ビルド済み React 静的ファイルを配信し、`/api` と `/mcp` を `app` にリバースプロキシ | `127.0.0.1:${HTTP_PORT:-80}:80` |
+| `backend` | FastAPI。起動時に `alembic upgrade head` を実行。healthcheck は `GET /api/health` | `expose: 8000`（ホストに出さない） |
+| `frontend` | nginx。ビルド済み React 静的ファイルを配信し、`/api` と `/mcp` を `backend` にリバースプロキシ | `127.0.0.1:${HTTP_PORT:-80}:80` |
 
-- `app` は `db` が healthy になってから、`web` は `app` が healthy になってから起動（`depends_on: condition: service_healthy`）。
-- **外部に出すのは web の 80 番のみ**。`127.0.0.1` バインドを必須とする（LAN に公開しない）。
+- `backend` は `db` が healthy になってから、`frontend` は `backend` が healthy になってから起動（`depends_on: condition: service_healthy`）。
+- **外部に出すのは frontend の 80 番のみ**。`127.0.0.1` バインドを必須とする（LAN に公開しない）。
 - `HTTP_PORT` は `.env` で変更可（ポート競合対策）。`.env.example` に `HTTP_PORT=80` ほか DB 接続情報・本文サイズ上限等を記載。
 - UI・API・MCP が同一オリジンになるため CORS 設定は不要。
 
 ### nginx 設定の要点
 - `/`：静的ファイル（`try_files $uri /index.html`）
-- `/api/`：`proxy_pass http://app:8000`
-- `/mcp`：`proxy_pass http://app:8000`、`proxy_http_version 1.1`、**`proxy_buffering off`**、`proxy_read_timeout 3600s`（ストリーミング応答のため必須）
+- `/api/`：`proxy_pass http://backend:8000`
+- `/mcp`：`proxy_pass http://backend:8000`、`proxy_http_version 1.1`、**`proxy_buffering off`**、`proxy_read_timeout 3600s`（ストリーミング応答のため必須）
 
 ### 起動スクリプト `run.bat` / `run.sh`（リポジトリ直下）
 起動は必ずこれらで行う。処理順：
@@ -91,7 +91,7 @@
   { "mcpServers": { "jobtrail": { "command": "npx", "args": ["-y", "mcp-remote", "http://localhost/mcp"] } } }
   ```
   `http` 接続で拒否される場合は `--allow-http` 等のオプションを検討する。
-- フォールバックとして **stdio エントリポイント**（`adapters/mcp/stdio.py`）も用意する。同じ registry から同じツールを公開し、`docker compose -p jobtrail exec -T app python -m jobtrail.adapters.mcp.stdio` で起動できること。
+- フォールバックとして **stdio エントリポイント**（`adapters/mcp/stdio.py`）も用意する。同じ registry から同じツールを公開し、`docker compose -p jobtrail exec -T backend python -m jobtrail.adapters.mcp.stdio` で起動できること。
 - どの方式で動いたかを README と `docs/mcp-tools.md` に記録する。
 
 ## 5. ディレクトリ構成
@@ -255,7 +255,7 @@ jobtrail/
 ## 9. セキュリティ【確定】
 - 認証なし。**localhost 限定が前提**（`127.0.0.1` バインド）。
 - DNS rebinding 対策：`Host` ヘッダーを `localhost` / `127.0.0.1` に限定し、`/mcp` では `Origin` ヘッダーも検証する。
-- `db` と `app` はホストにポートを公開しない。
+- `db` と `backend` はホストにポートを公開しない。
 - 個人情報（氏名・職歴等）を扱う。データは各ユーザーのローカルに閉じることを README に明記し、MCP 経由で Claude に渡ることも説明する。
 
 ## 10. Web UI【確定】
@@ -280,7 +280,7 @@ jobtrail/
 ユーザー管理・認証・マルチテナント、アプリ内の LLM 呼び出し、アプリ側の Web 取得/スクレイピング、InterviewLog、転職エージェントの独立管理、カレンダー・メール連携・通知、手動 TODO（Task）、Excel/PDF ファイル本体の保管、`LISTEN/NOTIFY` による即時更新、全文検索・ベクトル検索。
 
 ## 13. 実装の進め方（推奨順）
-1. **雛形**：compose（db/app/web）、`run.sh`/`run.bat`、`/api/health`、nginx 設定、CI、import-linter。
+1. **雛形**：compose（db/backend/frontend）、`run.sh`/`run.bat`、`/api/health`、nginx 設定、CI、import-linter。
 2. **Application 集約**（`domain/application/`）：状態導出・不変条件・テスト。ここを最優先で固める。
 3. Company / CompanySource / JobPostingSnapshot の domain とテスト。
 4. infra：SQLAlchemy imperative mapping、Alembic、Unit of Work、楽観ロック、結合テスト。

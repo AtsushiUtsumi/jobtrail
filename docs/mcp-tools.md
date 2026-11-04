@@ -17,7 +17,7 @@
 | Streamable HTTP を直接呼び出し（nginx 経由） | 動作 | `tools/list`、`tools/call` |
 | `npx -y mcp-remote http://localhost:8080/mcp` | 動作 | `initialize`、`tools/list`（53 個）、`tools/call`（`ping`） |
 | `cmd /c npx -y mcp-remote http://localhost/mcp`（シェルを介さず起動） | 動作 | `initialize`、`tools/list`（53 個）、`ping`、`get_pipeline` |
-| stdio（`docker compose -p jobtrail exec -T app python -m jobtrail.adapters.mcp.stdio`） | 動作 | `initialize`、`tools/call`（`ping`） |
+| stdio（`docker compose -p jobtrail exec -T backend python -m jobtrail.adapters.mcp.stdio`） | 動作 | `initialize`、`tools/call`（`ping`） |
 
 - `mcp-remote` は `localhost` への `http` 接続を `--allow-http` なしで受け付けました。
 - **Claude Desktop アプリ本体からの接続は未検証です。** 上の確認は `mcp-remote` を Claude Desktop と同じ
