@@ -22,7 +22,7 @@ export function Layout() {
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <nav className="flex shrink-0 gap-1 overflow-x-auto border-b p-3 md:w-52 md:flex-col md:border-r md:border-b-0">
-        <div className="mr-3 px-2 py-1.5 font-semibold md:mb-3">jobtrail</div>
+        <div className="mr-3 px-2 py-1.5 font-semibold md:mb-3">JOBTRAIL</div>
         {LINKS.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
