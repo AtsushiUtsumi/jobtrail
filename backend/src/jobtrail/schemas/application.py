@@ -133,6 +133,7 @@ class ApplicationSummary(BaseModel):
     status: ApplicationStatus
     stage_type: StageType | None
     current_stage_id: UUID | None
+    current_stage_result: StageResult | None
     next_scheduled_at: datetime | None
     has_submitted_document: bool
     updated_at: datetime

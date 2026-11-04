@@ -1078,7 +1078,7 @@ export interface components {
          * ApplicationStatus
          * @enum {string}
          */
-        ApplicationStatus: "considering" | "applied" | "in_stage" | "awaiting_next_stage" | "offer_pending" | "closed";
+        ApplicationStatus: "considering" | "casual" | "document" | "first_interview" | "second_interview" | "offer" | "rejected" | "offer_accepted" | "offer_declined" | "withdrawn" | "closed";
         /**
          * ApplicationSummary
          * @description 一覧・カンバン用の表現。status は導出値。
@@ -1106,6 +1106,7 @@ export interface components {
             stage_type: components["schemas"]["StageType"] | null;
             /** Current Stage Id */
             current_stage_id: string | null;
+            current_stage_result: components["schemas"]["StageResult"] | null;
             /** Next Scheduled At */
             next_scheduled_at: string | null;
             /** Has Submitted Document */
@@ -2053,7 +2054,7 @@ export interface components {
          * StageType
          * @enum {string}
          */
-        StageType: "document" | "casual" | "aptitude" | "interview" | "final" | "offer";
+        StageType: "casual" | "document" | "first_interview" | "second_interview" | "offer";
         /** StatsOutput */
         StatsOutput: {
             /**

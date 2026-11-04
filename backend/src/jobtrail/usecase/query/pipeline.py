@@ -8,7 +8,7 @@ def get_pipeline(ctx: AppContext, data: GetPipelineInput) -> PipelineOutput:
     """ステータス別の応募一覧を返す（カンバン用）。"""
     with ctx.uow_factory() as uow:
         summaries = [to_summary(row) for row in uow.application_reads.rows()]
-    statuses = [s for s in ApplicationStatus if data.include_closed or s is not s.CLOSED]
+    statuses = [s for s in ApplicationStatus if data.include_closed or not s.is_closed]
     columns = []
     for status in statuses:
         items = [s for s in summaries if s.status is status]

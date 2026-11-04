@@ -17,7 +17,7 @@ OFFER_OUTCOMES = (Outcome.OFFER_ACCEPTED, Outcome.OFFER_DECLINED)
 
 
 def _offer_reached_at(row: ApplicationRow) -> datetime | None:
-    """オファー面談の Stage が追加された時点を内定とみなす。無ければ内定系の終了時点。"""
+    """内定の Stage が追加された時点を内定とみなす。無ければ内定系の終了時点。"""
     for stage in row.stages:
         if stage.type is StageType.OFFER:
             return stage.created_at

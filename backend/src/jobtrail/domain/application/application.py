@@ -12,6 +12,13 @@ from jobtrail.domain.application.value_objects import (
 from jobtrail.domain.shared.errors import DomainError, ErrorKind, NotFoundError
 from jobtrail.domain.shared.ids import ApplicationId, CompanyId, DocumentVersionId, StageId, new_id
 
+_STATUS_BY_OUTCOME = {
+    Outcome.REJECTED: ApplicationStatus.REJECTED,
+    Outcome.OFFER_ACCEPTED: ApplicationStatus.OFFER_ACCEPTED,
+    Outcome.OFFER_DECLINED: ApplicationStatus.OFFER_DECLINED,
+    Outcome.WITHDRAWN: ApplicationStatus.WITHDRAWN,
+}
+
 
 class StageLike(Protocol):
     @property
@@ -34,17 +41,14 @@ def derive_status(
     """status は保存せず、常にこの関数で導出する（集約と読み取りモデルで共有）。"""
     if outcome is not Outcome.IN_PROGRESS:
         last_type = stages[-1].type if stages else None
-        return DerivedStatus(ApplicationStatus.CLOSED, last_type, outcome)
+        status = _STATUS_BY_OUTCOME.get(outcome, ApplicationStatus.CLOSED)
+        return DerivedStatus(status, last_type, outcome)
     if applied_at is None:
         return DerivedStatus(ApplicationStatus.CONSIDERING)
     if not stages:
-        return DerivedStatus(ApplicationStatus.APPLIED)
-    last = stages[-1]
-    if last.result is StageResult.PENDING:
-        return DerivedStatus(ApplicationStatus.IN_STAGE, last.type)
-    if last.type is StageType.OFFER:
-        return DerivedStatus(ApplicationStatus.OFFER_PENDING, last.type)
-    return DerivedStatus(ApplicationStatus.AWAITING_NEXT_STAGE, last.type)
+        return DerivedStatus(ApplicationStatus.DOCUMENT)
+    last_type = stages[-1].type
+    return DerivedStatus(ApplicationStatus(last_type.value), last_type)
 
 
 @dataclass(eq=False)

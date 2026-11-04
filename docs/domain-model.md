@@ -20,12 +20,11 @@ status は保存せず、`derive_status()` が `outcome`・`applied_at`・`stage
 
 | 条件（上から順に判定） | status |
 |---|---|
-| `outcome` が進行中以外 | `closed`（理由は `outcome`） |
+| `outcome` が落選・内定承諾・内定辞退・応募辞退 | `rejected`・`offer_accepted`・`offer_declined`・`withdrawn` |
+| `outcome` が見送り・募集終了 | `closed`（理由は `outcome`。カンバンには出さない） |
 | `applied_at` が空 | `considering`（検討中） |
-| `stages` が空 | `applied`（応募済み） |
-| 最後の Stage が結果待ち | `in_stage`（選考中。種別は `stage_type`） |
-| 最後の Stage が通過し、オファー面談である | `offer_pending`（内定・回答待ち） |
-| 最後の Stage が通過 | `awaiting_next_stage`（次ステージ待ち） |
+| `stages` が空 | `document`（書類選考） |
+| 上記以外 | 最後の Stage の種別（`casual`・`document`・`first_interview`・`second_interview`・`offer`） |
 
 ### 不変条件
 
@@ -39,7 +38,7 @@ status は保存せず、`derive_status()` が `outcome`・`applied_at`・`stage
 | 応募済みへの再度の `apply` | `ALREADY_APPLIED` |
 | 終了していない応募の `reopen` | `APPLICATION_NOT_CLOSED` |
 
-Stage の結果を不合格にすると `outcome` は不合格に、辞退にすると応募辞退になります。
+Stage の結果を不合格にすると `outcome` は落選に、辞退にすると応募辞退になります。
 
 ### 仕様書から補った判断
 
@@ -59,5 +58,5 @@ Stage の結果を不合格にすると `outcome` は不合格に、辞退にす
 
 - **分母**: `applied_at` のある応募。検討中と、応募せず見送った応募は含みません。
 - **通過率**: 通過 ÷ 結果確定（結果待ちを除く）。
-- **内定の時点**: 最初のオファー面談 Stage が追加された時点。無ければ内定承諾・辞退で終了した時点。
+- **内定の時点**: 最初の内定 Stage が追加された時点。無ければ内定承諾・辞退で終了した時点。
 - **結果待ちの起点**: 予定日が過ぎていれば予定日、予定日が未定なら Stage の追加日。

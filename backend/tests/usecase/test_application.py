@@ -87,10 +87,10 @@ def test_add_to_deleted_company_is_rejected(ctx: AppContext) -> None:
 def test_full_flow_to_offer(ctx: AppContext) -> None:
     target = applied(ctx)
     target = stage(ctx, target, StageType.DOCUMENT, StageResult.PASSED)
-    assert target.status is ApplicationStatus.AWAITING_NEXT_STAGE
-    target = stage(ctx, target, StageType.INTERVIEW)
-    assert target.status is ApplicationStatus.IN_STAGE
-    assert target.stage_type is StageType.INTERVIEW
+    assert target.status is ApplicationStatus.DOCUMENT
+    target = stage(ctx, target, StageType.FIRST_INTERVIEW)
+    assert target.status is ApplicationStatus.FIRST_INTERVIEW
+    assert target.stage_type is StageType.FIRST_INTERVIEW
     target = application.record_stage_result(
         ctx,
         RecordStageResultInput(
@@ -100,11 +100,11 @@ def test_full_flow_to_offer(ctx: AppContext) -> None:
         ),
     )
     target = stage(ctx, target, StageType.OFFER, StageResult.PASSED)
-    assert target.status is ApplicationStatus.OFFER_PENDING
+    assert target.status is ApplicationStatus.OFFER
     target = application.close_application(
         ctx, CloseApplicationInput(application_id=target.id, outcome=Outcome.OFFER_ACCEPTED)
     )
-    assert target.status is ApplicationStatus.CLOSED
+    assert target.status is ApplicationStatus.OFFER_ACCEPTED
     assert target.outcome is Outcome.OFFER_ACCEPTED
     assert _positions(ctx, target.id) == [0, 1, 2]
 
@@ -118,15 +118,15 @@ def _positions(ctx: AppContext, application_id: UUID) -> list[int]:
 
 def test_rejection_reopen_cycle_persists(ctx: AppContext) -> None:
     target = applied(ctx)
-    target = stage(ctx, target, StageType.INTERVIEW, StageResult.REJECTED)
+    target = stage(ctx, target, StageType.FIRST_INTERVIEW, StageResult.REJECTED)
     assert target.outcome is Outcome.REJECTED
     target = application.reopen_application(ctx, ReopenApplicationInput(application_id=target.id))
-    assert target.status is ApplicationStatus.IN_STAGE
+    assert target.status is ApplicationStatus.FIRST_INTERVIEW
     assert target.stages[-1].result is StageResult.PENDING
 
 
 def test_stage_edits_persist_and_bump_version(ctx: AppContext) -> None:
-    target = stage(ctx, applied(ctx), StageType.INTERVIEW)
+    target = stage(ctx, applied(ctx), StageType.FIRST_INTERVIEW)
     stage_id = target.stages[0].id
     moved = application.reschedule_stage(
         ctx,
@@ -169,7 +169,7 @@ def test_find_filters(ctx: AppContext) -> None:
     second = new_application(ctx, "ベータ")
     find = application.find_applications
 
-    assert find(ctx, FindApplicationsInput(status=ApplicationStatus.APPLIED)).total == 1
+    assert find(ctx, FindApplicationsInput(status=ApplicationStatus.DOCUMENT)).total == 1
     assert find(ctx, FindApplicationsInput(status=ApplicationStatus.CONSIDERING)).total == 1
     assert find(ctx, FindApplicationsInput(channel=ApplicationChannel.AGENT)).total == 1
     assert find(ctx, FindApplicationsInput(company_id=second.company_id)).total == 1

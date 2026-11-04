@@ -113,7 +113,7 @@ def test_full_application_flow_over_rest(client: TestClient) -> None:
         f"{url}/apply",
         json={"applied_at": "2026-01-01T00:00:00+09:00", "expected_version": version},
     ).json()
-    assert applied["status"] == "applied"
+    assert applied["status"] == "document"
     staged = client.post(
         f"{url}/stages", json={"type": "document", "expected_version": applied["version"]}
     )

@@ -25,9 +25,23 @@ interface DialogProps {
   onClose: () => void;
 }
 
-export function AdvanceStageDialog({ application, onClose }: DialogProps) {
-  const action = useAction((form: FormData) =>
-    unwrap(
+export function AdvanceStageDialog({
+  application,
+  onClose,
+  defaultType = "first_interview",
+  passStageId,
+}: DialogProps & { defaultType?: StageType; passStageId?: string }) {
+  const action = useAction(async (form: FormData) => {
+    // カンバンでは結果待ちの Stage を通過にしてから次の Stage を追加する。
+    const passed =
+      passStageId &&
+      (await unwrap(
+        api.POST("/api/applications/{application_id}/stages/{stage_id}/result", {
+          params: { path: { application_id: application.id, stage_id: passStageId } },
+          body: { result: "passed", expected_version: application.version },
+        }),
+      ));
+    return unwrap(
       api.POST("/api/applications/{application_id}/stages", {
         params: { path: { application_id: application.id } },
         body: {
@@ -35,11 +49,11 @@ export function AdvanceStageDialog({ application, onClose }: DialogProps) {
           label: textOrNull(form, "label"),
           scheduled_at: fromLocalInput(form.get("scheduled_at")),
           memo: text(form, "memo"),
-          expected_version: application.version,
+          expected_version: passed ? passed.version : application.version,
         },
       }),
-    ),
-  );
+    );
+  });
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,7 +64,7 @@ export function AdvanceStageDialog({ application, onClose }: DialogProps) {
     <Dialog open onOpenChange={(open) => !open && onClose()} title="ステージを追加">
       <form onSubmit={submit} className="grid gap-3">
         <Field label="種別">
-          <Select name="type" defaultValue="interview">
+          <Select name="type" defaultValue={defaultType}>
             {Object.entries(STAGE_TYPE_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -59,7 +73,7 @@ export function AdvanceStageDialog({ application, onClose }: DialogProps) {
           </Select>
         </Field>
         <Field label="表示名（任意）">
-          <Input name="label" placeholder="例: 一次面接" />
+          <Input name="label" placeholder="例: 最終面接" />
         </Field>
         <Field label="予定日時（任意）">
           <Input name="scheduled_at" type="datetime-local" />
@@ -75,9 +89,13 @@ export function AdvanceStageDialog({ application, onClose }: DialogProps) {
   );
 }
 
-export function CloseApplicationDialog({ application, onClose }: DialogProps) {
+export function CloseApplicationDialog({
+  application,
+  onClose,
+  defaultOutcome,
+}: DialogProps & { defaultOutcome?: Outcome }) {
   const outcomes = closableOutcomes(application.status);
-  const [outcome, setOutcome] = useState<Outcome>(outcomes[0]);
+  const [outcome, setOutcome] = useState<Outcome>(defaultOutcome ?? outcomes[0]);
   const action = useAction(() =>
     unwrap(
       api.POST("/api/applications/{application_id}/close", {

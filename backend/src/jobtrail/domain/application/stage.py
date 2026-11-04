@@ -6,11 +6,10 @@ from jobtrail.domain.shared.ids import StageId, new_id
 
 
 class StageType(StrEnum):
-    DOCUMENT = "document"
     CASUAL = "casual"
-    APTITUDE = "aptitude"
-    INTERVIEW = "interview"
-    FINAL = "final"
+    DOCUMENT = "document"
+    FIRST_INTERVIEW = "first_interview"
+    SECOND_INTERVIEW = "second_interview"
     OFFER = "offer"
 
 

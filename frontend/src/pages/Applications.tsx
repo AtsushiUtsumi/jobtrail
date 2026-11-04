@@ -17,7 +17,6 @@ import {
   AdvanceStageDialog,
   applyNow,
   CloseApplicationDialog,
-  type ApplicationRef,
 } from "@/components/ApplicationDialogs";
 import { PageHeader } from "@/components/Layout";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -27,7 +26,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/input";
 import { useAction } from "@/hooks/useAction";
 import { formatDate, formatDateTime, text, textOrNull } from "@/lib/format";
-import { planDrop } from "@/lib/kanban";
+import { outcomeOf, planDrop, stageTypeOf } from "@/lib/kanban";
 import {
   CHANNEL_LABELS,
   STATUS_LABELS,
@@ -100,18 +99,10 @@ function Kanban() {
     queryFn: () =>
       unwrap(api.GET("/api/analytics/pipeline", { params: { query: { include_closed: true } } })),
   });
-  const [advancing, setAdvancing] = useState<ApplicationRef>();
-  const [closing, setClosing] = useState<ApplicationRef>();
+  const [advancing, setAdvancing] = useState<{ item: Summary; target: ApplicationStatus }>();
+  const [closing, setClosing] = useState<{ item: Summary; target: ApplicationStatus }>();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const apply = useAction((item: Summary) => applyNow(item));
-  const pass = useAction((item: Summary) =>
-    unwrap(
-      api.POST("/api/applications/{application_id}/stages/{stage_id}/result", {
-        params: { path: { application_id: item.id, stage_id: item.current_stage_id! } },
-        body: { result: "passed", expected_version: item.version },
-      }),
-    ),
-  );
 
   function onDragEnd(event: DragEndEvent) {
     const item = event.active.data.current as Summary | undefined;
@@ -119,12 +110,11 @@ function Kanban() {
     if (!item || !target) return;
     const action = planDrop(item.status, target);
     if (action === "apply") apply.mutate(item);
-    else if (action === "pass") pass.mutate(item);
-    else if (action === "advance") setAdvancing(item);
-    else if (action === "close") setClosing(item);
+    else if (action === "advance") setAdvancing({ item, target });
+    else if (action === "close") setClosing({ item, target });
     else if (item.status !== target) {
       toast.info(
-        item.status === "closed"
+        item.outcome !== "in_progress"
           ? "終了した応募は詳細画面から再開してください。"
           : "この列へは移動できません。",
       );
@@ -135,16 +125,31 @@ function Kanban() {
     <>
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         <div className="flex items-start gap-3 overflow-x-auto pb-3">
-          {pipeline.data?.columns.map((column) => (
-            <KanbanColumn key={column.status} column={column} />
-          ))}
+          {pipeline.data?.columns
+            .filter((column) => column.status !== "closed")
+            .map((column) => (
+              <KanbanColumn key={column.status} column={column} />
+            ))}
         </div>
       </DndContext>
       {advancing && (
-        <AdvanceStageDialog application={advancing} onClose={() => setAdvancing(undefined)} />
+        <AdvanceStageDialog
+          application={advancing.item}
+          defaultType={stageTypeOf(advancing.target)}
+          passStageId={
+            advancing.item.current_stage_result === "pending"
+              ? (advancing.item.current_stage_id ?? undefined)
+              : undefined
+          }
+          onClose={() => setAdvancing(undefined)}
+        />
       )}
       {closing && (
-        <CloseApplicationDialog application={closing} onClose={() => setClosing(undefined)} />
+        <CloseApplicationDialog
+          application={closing.item}
+          defaultOutcome={outcomeOf(closing.target)}
+          onClose={() => setClosing(undefined)}
+        />
       )}
     </>
   );

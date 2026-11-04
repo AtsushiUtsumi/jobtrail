@@ -59,37 +59,42 @@ class TestStatusDerivation:
         assert application.derived_status.status is ApplicationStatus.CONSIDERING
 
     def test_applied_without_stages(self) -> None:
-        assert applied().derived_status.status is ApplicationStatus.APPLIED
+        assert applied().derived_status.status is ApplicationStatus.DOCUMENT
 
-    def test_pending_stage_is_in_stage_with_type(self) -> None:
-        derived = in_stage(StageType.INTERVIEW).derived_status
-        assert derived.status is ApplicationStatus.IN_STAGE
-        assert derived.stage_type is StageType.INTERVIEW
+    def test_pending_stage_uses_stage_type(self) -> None:
+        derived = in_stage(StageType.FIRST_INTERVIEW).derived_status
+        assert derived.status is ApplicationStatus.FIRST_INTERVIEW
+        assert derived.stage_type is StageType.FIRST_INTERVIEW
 
-    def test_passed_stage_awaits_next(self) -> None:
-        derived = after_result(StageResult.PASSED).derived_status
-        assert derived.status is ApplicationStatus.AWAITING_NEXT_STAGE
-
-    def test_passed_offer_stage_is_offer_pending(self) -> None:
-        derived = after_result(StageResult.PASSED, StageType.OFFER).derived_status
-        assert derived.status is ApplicationStatus.OFFER_PENDING
+    @pytest.mark.parametrize("type", list(StageType))
+    def test_passed_stage_stays_in_stage_type(self, type: StageType) -> None:
+        derived = after_result(StageResult.PASSED, type).derived_status
+        assert derived.status.value == type.value
 
     @pytest.mark.parametrize(
-        "outcome", [o for o in Outcome if o not in (Outcome.IN_PROGRESS, Outcome.PASSED_OVER)]
+        ("outcome", "status"),
+        [
+            (Outcome.OFFER_ACCEPTED, ApplicationStatus.OFFER_ACCEPTED),
+            (Outcome.OFFER_DECLINED, ApplicationStatus.OFFER_DECLINED),
+            (Outcome.REJECTED, ApplicationStatus.REJECTED),
+            (Outcome.WITHDRAWN, ApplicationStatus.WITHDRAWN),
+            (Outcome.POSTING_CLOSED, ApplicationStatus.CLOSED),
+        ],
     )
-    def test_closed_exposes_outcome(self, outcome: Outcome) -> None:
+    def test_closed_exposes_outcome(self, outcome: Outcome, status: ApplicationStatus) -> None:
         derived = closed(outcome).derived_status
-        assert derived.status is ApplicationStatus.CLOSED
+        assert derived.status is status
         assert derived.outcome is outcome
 
     def test_passed_over_is_closed(self) -> None:
         application = considering()
         application.close(Outcome.PASSED_OVER, NOW)
+        assert application.derived_status.status is ApplicationStatus.CLOSED
         assert application.derived_status.outcome is Outcome.PASSED_OVER
 
     def test_outcome_takes_precedence_over_everything(self) -> None:
         derived = derive_status(Outcome.REJECTED, None, [])
-        assert derived.status is ApplicationStatus.CLOSED
+        assert derived.status is ApplicationStatus.REJECTED
 
 
 class TestApply:
@@ -121,7 +126,7 @@ class TestAddStage:
         application = in_stage()
         assert_error(
             "STAGE_PENDING_RESULT",
-            lambda: application.add_stage(StageType.INTERVIEW, None, None, "", NOW),
+            lambda: application.add_stage(StageType.FIRST_INTERVIEW, None, None, "", NOW),
         )
 
     @pytest.mark.parametrize("result", [StageResult.REJECTED, StageResult.DECLINED])
@@ -132,7 +137,7 @@ class TestAddStage:
         application.outcome = Outcome.IN_PROGRESS
         assert_error(
             "STAGE_TERMINATED",
-            lambda: application.add_stage(StageType.INTERVIEW, None, None, "", NOW),
+            lambda: application.add_stage(StageType.FIRST_INTERVIEW, None, None, "", NOW),
         )
 
     def test_rejects_when_closed(self) -> None:
@@ -143,10 +148,13 @@ class TestAddStage:
         )
 
     def test_order_of_types_is_free(self) -> None:
-        application = after_result(StageResult.PASSED, StageType.FINAL)
+        application = after_result(StageResult.PASSED, StageType.SECOND_INTERVIEW)
         stage = application.add_stage(StageType.CASUAL, "2 回目", None, "", NOW)
         assert stage.position == 1
-        assert [s.type for s in application.stages] == [StageType.FINAL, StageType.CASUAL]
+        assert [s.type for s in application.stages] == [
+            StageType.SECOND_INTERVIEW,
+            StageType.CASUAL,
+        ]
 
 
 class TestRecordStageResult:
@@ -175,7 +183,7 @@ class TestRecordStageResult:
     def test_rejects_non_latest_stage(self) -> None:
         application = after_result(StageResult.PASSED)
         first = application.stages[0]
-        application.add_stage(StageType.INTERVIEW, None, None, "", NOW)
+        application.add_stage(StageType.FIRST_INTERVIEW, None, None, "", NOW)
         assert_error(
             "STAGE_NOT_LATEST",
             lambda: application.record_stage_result(first.id, StageResult.REJECTED, None, NOW),
@@ -252,14 +260,14 @@ class TestReopen:
         application = closed()
         application.reopen(NOW)
         assert application.outcome is Outcome.IN_PROGRESS
-        assert application.derived_status.status is ApplicationStatus.APPLIED
+        assert application.derived_status.status is ApplicationStatus.DOCUMENT
 
     def test_terminal_stage_returns_to_pending(self) -> None:
         application = after_result(StageResult.REJECTED)
         application.reopen(NOW)
         assert application.stages[-1].result is StageResult.PENDING
         assert application.stages[-1].result_recorded_at is None
-        assert application.derived_status.status is ApplicationStatus.IN_STAGE
+        assert application.derived_status.status is ApplicationStatus.DOCUMENT
 
     def test_rejects_when_not_closed(self) -> None:
         application = applied()

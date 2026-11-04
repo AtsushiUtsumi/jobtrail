@@ -46,7 +46,7 @@ function StageItem({
   stage: Stage;
   latest: boolean;
 }) {
-  const closed = application.status === "closed";
+  const closed = application.outcome !== "in_progress";
   const path = { application_id: application.id, stage_id: stage.id };
   const expected_version = application.version;
   const record = useAction((result: StageResult) =>
@@ -280,7 +280,7 @@ function SubmittedDocument({ application }: { application: Application }) {
       <p className="mb-2 text-sm">
         {application.submitted_document_version_id ? "紐づけ済み" : "未紐づけ"}
       </p>
-      {application.status !== "closed" && (
+      {application.outcome === "in_progress" && (
         <div className="grid gap-2">
           <Select
             aria-label="書類"
@@ -445,7 +445,7 @@ export function ApplicationDetailPage() {
       <p className="text-sm text-muted-foreground">{detail.error?.message ?? "読み込み中…"}</p>
     );
   }
-  const closed = application.status === "closed";
+  const closed = application.outcome !== "in_progress";
 
   return (
     <>

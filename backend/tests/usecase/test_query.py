@@ -38,22 +38,24 @@ def column(ctx: AppContext, status: ApplicationStatus) -> list[str]:
 def test_pipeline_groups_by_derived_status(ctx: AppContext) -> None:
     new_application(ctx, "検討")
     applied(ctx, "応募")
-    stage(ctx, applied(ctx, "選考"), StageType.INTERVIEW)
-    stage(ctx, applied(ctx, "通過"), StageType.DOCUMENT, StageResult.PASSED)
+    stage(ctx, applied(ctx, "面談"), StageType.CASUAL)
+    stage(ctx, applied(ctx, "一次"), StageType.FIRST_INTERVIEW)
+    stage(ctx, applied(ctx, "二次"), StageType.SECOND_INTERVIEW, StageResult.PASSED)
     stage(ctx, applied(ctx, "内定"), StageType.OFFER, StageResult.PASSED)
-    stage(ctx, applied(ctx, "不合格"), StageType.DOCUMENT, StageResult.REJECTED)
+    stage(ctx, applied(ctx, "落選"), StageType.DOCUMENT, StageResult.REJECTED)
 
     assert column(ctx, ApplicationStatus.CONSIDERING) == ["検討"]
-    assert column(ctx, ApplicationStatus.APPLIED) == ["応募"]
-    assert column(ctx, ApplicationStatus.IN_STAGE) == ["選考"]
-    assert column(ctx, ApplicationStatus.AWAITING_NEXT_STAGE) == ["通過"]
-    assert column(ctx, ApplicationStatus.OFFER_PENDING) == ["内定"]
-    assert column(ctx, ApplicationStatus.CLOSED) == ["不合格"]
-    assert get_pipeline(ctx, GetPipelineInput()).total == 6
+    assert column(ctx, ApplicationStatus.CASUAL) == ["面談"]
+    assert column(ctx, ApplicationStatus.DOCUMENT) == ["応募"]
+    assert column(ctx, ApplicationStatus.FIRST_INTERVIEW) == ["一次"]
+    assert column(ctx, ApplicationStatus.SECOND_INTERVIEW) == ["二次"]
+    assert column(ctx, ApplicationStatus.OFFER) == ["内定"]
+    assert column(ctx, ApplicationStatus.REJECTED) == ["落選"]
+    assert get_pipeline(ctx, GetPipelineInput()).total == 7
 
     open_only = get_pipeline(ctx, GetPipelineInput(include_closed=False))
-    assert open_only.total == 5
-    assert ApplicationStatus.CLOSED not in [c.status for c in open_only.columns]
+    assert open_only.total == 6
+    assert not [c for c in open_only.columns if c.status.is_closed]
 
 
 def test_stats_exclude_considering_and_passed_over(ctx: AppContext) -> None:
@@ -102,10 +104,30 @@ def test_days_to_offer_uses_offer_stage(ctx: AppContext) -> None:
 def test_next_actions_upcoming_and_waiting(ctx: AppContext) -> None:
     now = datetime(2026, 3, 1, tzinfo=UTC)
     clock = at(ctx, now)
-    stage(clock, applied(clock, "明日"), StageType.INTERVIEW, scheduled_at=now + timedelta(days=1))
-    stage(clock, applied(clock, "来月"), StageType.INTERVIEW, scheduled_at=now + timedelta(days=30))
-    stage(clock, applied(clock, "放置"), StageType.INTERVIEW, scheduled_at=now - timedelta(days=9))
-    stage(clock, applied(clock, "直近"), StageType.INTERVIEW, scheduled_at=now - timedelta(days=3))
+    stage(
+        clock,
+        applied(clock, "明日"),
+        StageType.FIRST_INTERVIEW,
+        scheduled_at=now + timedelta(days=1),
+    )
+    stage(
+        clock,
+        applied(clock, "来月"),
+        StageType.FIRST_INTERVIEW,
+        scheduled_at=now + timedelta(days=30),
+    )
+    stage(
+        clock,
+        applied(clock, "放置"),
+        StageType.FIRST_INTERVIEW,
+        scheduled_at=now - timedelta(days=9),
+    )
+    stage(
+        clock,
+        applied(clock, "直近"),
+        StageType.FIRST_INTERVIEW,
+        scheduled_at=now - timedelta(days=3),
+    )
     stage(at(ctx, now - timedelta(days=20)), applied(clock, "未定"), StageType.DOCUMENT)
 
     actions = get_next_actions(clock, GetNextActionsInput())
@@ -160,7 +182,10 @@ def test_closed_application_is_not_listed_as_upcoming(ctx: AppContext) -> None:
     now = datetime(2026, 3, 1, tzinfo=UTC)
     clock = at(ctx, now)
     target = stage(
-        clock, applied(clock, "辞退"), StageType.INTERVIEW, scheduled_at=now + timedelta(days=1)
+        clock,
+        applied(clock, "辞退"),
+        StageType.FIRST_INTERVIEW,
+        scheduled_at=now + timedelta(days=1),
     )
     application.close_application(
         clock, CloseApplicationInput(application_id=target.id, outcome=Outcome.WITHDRAWN)

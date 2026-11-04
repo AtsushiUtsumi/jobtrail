@@ -166,14 +166,15 @@ jobtrail/
 ### 6.4 Application（状態機械の中核）
 - 属性：`id, company_id, position(職種), channel, agent_name, applied_at, outcome, stages[], submitted_document_version_id, memo, created_at, updated_at, version`
 - `ApplicationChannel`：直接応募 / エージェント / スカウト / リファラル
-- `outcome`：進行中 / 内定承諾 / 内定辞退 / 不合格 / 応募辞退 / 募集終了 / **見送り**（応募前に見送り）
-- **初期状態は「検討中」**【確定】：`stages` が空かつ `applied_at` が空。求人を保存しただけの段階も Application として扱う。`apply(applied_at)` で「応募済み」へ遷移。
+- `outcome`：進行中 / 内定承諾 / 内定辞退 / 落選 / 応募辞退 / 募集終了 / **見送り**（応募前に見送り）
+- **初期状態は「検討中」**【確定】：`stages` が空かつ `applied_at` が空。求人を保存しただけの段階も Application として扱う。`apply(applied_at)` で「書類選考」へ遷移。
 - **status は保存せず導出する**：
-  - `outcome` が進行中以外 → 終了（outcome の値）
+  - ステージは 検討中 / カジュアル面談 / 書類選考 / 一次面接 / 二次面接 / 内定 / 落選 / 内定承諾 / 内定辞退 / 応募辞退 の 10 種。カンバンの列もこの順に並ぶ
+  - `outcome` が落選・内定承諾・内定辞退・応募辞退 → その値
+  - `outcome` が見送り・募集終了 → 終了（カンバンには出さず、一覧で確認する）
   - `applied_at` が空 → 検討中
-  - `stages` が空 → 応募済み
-  - 最後の Stage が結果待ち → 選考中（その種別）
-  - 最後の Stage が通過 → 次ステージ待ち（最後がオファー系なら内定（回答待ち））
+  - `stages` が空 → 書類選考
+  - それ以外 → 最後の Stage の種別（結果待ちでも通過でも同じ）
 - 不変条件：
   - 検討中の間は Stage を追加できない
   - 結果未確定の Stage があるとき、次の Stage を追加できない
@@ -186,7 +187,7 @@ jobtrail/
 
 ### 6.4.1 Stage（Application 内のエンティティ）
 - 属性：`id, type, label(任意の表示名), scheduled_at, result, memo`
-- `StageType`：書類 / カジュアル面談 / 適性検査 / 面接 / 最終 / オファー面談
+- `StageType`：カジュアル面談 / 書類選考 / 一次面接 / 二次面接 / 内定
 - `StageResult`：結果待ち / 通過 / 不合格 / 辞退
 - **Stage の順序は自由**（種別の並びを検証しない。追加順）【暫定】
 

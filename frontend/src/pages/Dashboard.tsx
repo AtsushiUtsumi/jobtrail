@@ -33,15 +33,17 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader title="ダッシュボード" />
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        {pipeline.data?.columns.map((column) => (
-          <Link key={column.status} to="/applications">
-            <Card className="p-3 hover:bg-muted">
-              <div className="text-xs text-muted-foreground">{STATUS_LABELS[column.status]}</div>
-              <div className="text-2xl font-semibold tabular-nums">{column.count}</div>
-            </Card>
-          </Link>
-        ))}
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+        {pipeline.data?.columns
+          .filter((column) => column.status !== "closed")
+          .map((column) => (
+            <Link key={column.status} to="/applications">
+              <Card className="p-3 hover:bg-muted">
+                <div className="text-xs text-muted-foreground">{STATUS_LABELS[column.status]}</div>
+                <div className="text-2xl font-semibold tabular-nums">{column.count}</div>
+              </Card>
+            </Link>
+          ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

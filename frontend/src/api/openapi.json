@@ -3424,10 +3424,15 @@
         "type": "string",
         "enum": [
           "considering",
-          "applied",
-          "in_stage",
-          "awaiting_next_stage",
-          "offer_pending",
+          "casual",
+          "document",
+          "first_interview",
+          "second_interview",
+          "offer",
+          "rejected",
+          "offer_accepted",
+          "offer_declined",
+          "withdrawn",
           "closed"
         ],
         "title": "ApplicationStatus"
@@ -3495,6 +3500,16 @@
             ],
             "title": "Current Stage Id"
           },
+          "current_stage_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StageResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "next_scheduled_at": {
             "anyOf": [
               {
@@ -3533,6 +3548,7 @@
           "status",
           "stage_type",
           "current_stage_id",
+          "current_stage_result",
           "next_scheduled_at",
           "has_submitted_document",
           "updated_at",
@@ -6005,11 +6021,10 @@
       "StageType": {
         "type": "string",
         "enum": [
-          "document",
           "casual",
-          "aptitude",
-          "interview",
-          "final",
+          "document",
+          "first_interview",
+          "second_interview",
           "offer"
         ],
         "title": "StageType"

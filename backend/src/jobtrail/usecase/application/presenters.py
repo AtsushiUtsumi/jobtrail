@@ -43,6 +43,7 @@ def to_summary(row: ApplicationRow) -> ApplicationSummary:
         status=derived.status,
         stage_type=derived.stage_type,
         current_stage_id=last.id if last else None,
+        current_stage_result=last.result if last else None,
         next_scheduled_at=last.scheduled_at if last and pending else None,
         has_submitted_document=row.submitted_document_version_id is not None,
         updated_at=row.updated_at,
