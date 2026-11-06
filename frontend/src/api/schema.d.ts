@@ -2705,7 +2705,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
-                status?: components["schemas"]["ApplicationStatus"] | null;
+                statuses?: components["schemas"]["ApplicationStatus"][] | null;
                 outcome?: components["schemas"]["Outcome"] | null;
                 company_id?: string | null;
                 channel?: components["schemas"]["ApplicationChannel"] | null;

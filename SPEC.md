@@ -229,7 +229,7 @@ jobtrail/
 ### 応募
 - ★ `add_application`（企業＋職種＋経路。企業が未登録なら同時作成。**まず `find_companies` で検索させ、見つからなければ作成するようツール説明文で誘導**）
 - ★ `update_application`（部分更新）, `apply`, `close_application`, `reopen_application`
-- ★ `find_applications`（ステータス・企業・経路・期間・志望度。既定は更新順で `sort` で志望度順に変更可）, `get_application`（Stage・求人票・提出情報を含む）
+- ★ `find_applications`（ステータス（複数可）・企業・経路・期間・志望度。既定は更新順で `sort` で志望度順に変更可）, `get_application`（Stage・求人票・提出情報を含む）
 - ★ `advance_stage`（Stage 追加）, `record_stage_result`, `reschedule_stage`, `update_stage_memo`
 - ★ `save_job_posting`, `get_job_postings`, `get_job_posting`（本文つき）, `update_job_posting_summary`
 

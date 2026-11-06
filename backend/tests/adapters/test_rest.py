@@ -136,3 +136,20 @@ def test_openapi_schema_is_generated(client: TestClient) -> None:
     body = schema["paths"]["/api/companies/{company_id}"]["patch"]["requestBody"]
     reference = body["content"]["application/json"]["schema"]["$ref"].rsplit("/", 1)[-1]
     assert "expected_version" in schema["components"]["schemas"][reference]["required"]
+
+
+def test_find_applications_accepts_multiple_statuses(client: TestClient) -> None:
+    created = client.post(
+        "/api/applications", json={"new_company": {"name": "アクメ"}, "position": "SWE"}
+    ).json()
+
+    def total(*statuses: str) -> int:
+        response = client.get("/api/applications", params={"statuses": list(statuses)})
+        assert response.status_code == 200, response.text
+        result: int = response.json()["total"]
+        return result
+
+    assert created["status"] == "considering"
+    assert total() == 1
+    assert total("offer", "considering") == 1
+    assert total("offer", "rejected") == 0

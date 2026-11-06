@@ -206,17 +206,17 @@ function PriorityInput({ item }: { item: Summary }) {
 
 function ApplicationList({ sort }: { sort: ApplicationSort }) {
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<ApplicationStatus | "">("");
+  const [statuses, setStatuses] = useState<ApplicationStatus[]>([]);
   const [channel, setChannel] = useState<ApplicationChannel | "">("");
   const applications = useQuery({
-    queryKey: ["applications", query, status, channel, sort],
+    queryKey: ["applications", query, statuses, channel, sort],
     queryFn: () =>
       unwrap(
         api.GET("/api/applications", {
           params: {
             query: {
               query: query || undefined,
-              status: status || undefined,
+              statuses: statuses.length > 0 ? statuses : undefined,
               channel: channel || undefined,
               sort,
               limit: 200,
@@ -236,18 +236,6 @@ function ApplicationList({ sort }: { sort: ApplicationSort }) {
           onChange={(e) => setQuery(e.target.value)}
         />
         <Select
-          className="w-44"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as ApplicationStatus | "")}
-        >
-          <option value="">全ステータス</option>
-          {Object.entries(STATUS_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </Select>
-        <Select
           className="w-40"
           value={channel}
           onChange={(e) => setChannel(e.target.value as ApplicationChannel | "")}
@@ -260,6 +248,30 @@ function ApplicationList({ sort }: { sort: ApplicationSort }) {
           ))}
         </Select>
       </div>
+      <fieldset className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        <legend className="sr-only">ステータス</legend>
+        {(Object.entries(STATUS_LABELS) as [ApplicationStatus, string][]).map(([value, label]) => (
+          <label key={value} className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={statuses.includes(value)}
+              onChange={(e) =>
+                setStatuses(
+                  e.target.checked
+                    ? [...statuses, value]
+                    : statuses.filter((status) => status !== value),
+                )
+              }
+            />
+            {label}
+          </label>
+        ))}
+        {statuses.length > 0 && (
+          <Button size="sm" variant="ghost" onClick={() => setStatuses([])}>
+            すべて解除
+          </Button>
+        )}
+      </fieldset>
       <Card className="overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-muted-foreground">

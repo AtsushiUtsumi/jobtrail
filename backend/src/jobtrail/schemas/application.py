@@ -73,7 +73,9 @@ class GetApplicationInput(InputModel):
 
 
 class FindApplicationsInput(PageInput):
-    status: ApplicationStatus | None = None
+    statuses: list[ApplicationStatus] | None = Field(
+        default=None, description="いずれかに一致する応募を返す。省略時は全ステータス"
+    )
     outcome: Outcome | None = None
     company_id: UUID | None = None
     channel: ApplicationChannel | None = None

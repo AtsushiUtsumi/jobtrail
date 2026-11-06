@@ -693,19 +693,22 @@
             }
           },
           {
-            "name": "status",
+            "name": "statuses",
             "in": "query",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/ApplicationStatus"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationStatus"
+                  }
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "Status"
+              "title": "Statuses"
             }
           },
           {

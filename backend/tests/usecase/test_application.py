@@ -170,8 +170,11 @@ def test_find_filters(ctx: AppContext) -> None:
     second = new_application(ctx, "ベータ")
     find = application.find_applications
 
-    assert find(ctx, FindApplicationsInput(status=ApplicationStatus.DOCUMENT)).total == 1
-    assert find(ctx, FindApplicationsInput(status=ApplicationStatus.CONSIDERING)).total == 1
+    assert find(ctx, FindApplicationsInput(statuses=[ApplicationStatus.DOCUMENT])).total == 1
+    assert find(ctx, FindApplicationsInput(statuses=[ApplicationStatus.CONSIDERING])).total == 1
+    both = [ApplicationStatus.DOCUMENT, ApplicationStatus.CONSIDERING]
+    assert find(ctx, FindApplicationsInput(statuses=both)).total == 2
+    assert find(ctx, FindApplicationsInput(statuses=[ApplicationStatus.OFFER])).total == 0
     assert find(ctx, FindApplicationsInput(channel=ApplicationChannel.AGENT)).total == 1
     assert find(ctx, FindApplicationsInput(company_id=second.company_id)).total == 1
     assert find(ctx, FindApplicationsInput(query="ベータ")).total == 1

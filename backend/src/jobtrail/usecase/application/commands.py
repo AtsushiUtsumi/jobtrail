@@ -181,8 +181,8 @@ def find_applications(ctx: AppContext, data: FindApplicationsInput) -> Page[Appl
             )
         ]
     summaries = [to_summary(row) for row in rows]
-    if data.status is not None:
-        summaries = [s for s in summaries if s.status is data.status]
+    if data.statuses:
+        summaries = [s for s in summaries if s.status in data.statuses]
     sort_summaries(summaries, data.sort)
     return Page(
         items=summaries[data.offset : data.offset + data.limit],
