@@ -38,6 +38,52 @@ import { cn } from "@/lib/utils";
 type Summary = Schemas["ApplicationSummary"];
 type ApplicationSort = Schemas["ApplicationSort"];
 
+const HIDDEN_BY_DEFAULT: ApplicationStatus[] = [
+  "rejected",
+  "offer_declined",
+  "withdrawn",
+  "closed",
+];
+const DEFAULT_STATUSES = (Object.keys(STATUS_LABELS) as ApplicationStatus[]).filter(
+  (status) => !HIDDEN_BY_DEFAULT.includes(status),
+);
+
+function StatusFilter({
+  value,
+  onChange,
+  exclude,
+}: {
+  value: ApplicationStatus[];
+  onChange: (statuses: ApplicationStatus[]) => void;
+  exclude?: ApplicationStatus;
+}) {
+  const options = (Object.entries(STATUS_LABELS) as [ApplicationStatus, string][]).filter(
+    ([status]) => status !== exclude,
+  );
+  return (
+    <fieldset className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+      <legend className="sr-only">ステータス</legend>
+      {options.map(([status, label]) => (
+        <label key={status} className="flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={value.includes(status)}
+            onChange={(e) =>
+              onChange(e.target.checked ? [...value, status] : value.filter((s) => s !== status))
+            }
+          />
+          {label}
+        </label>
+      ))}
+      {value.length > 0 && (
+        <Button size="sm" variant="ghost" onClick={() => onChange([])}>
+          すべて解除
+        </Button>
+      )}
+    </fieldset>
+  );
+}
+
 function KanbanCard({ item }: { item: Summary }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: item.id,
@@ -97,7 +143,7 @@ function KanbanColumn({ column }: { column: Schemas["PipelineColumn"] }) {
   );
 }
 
-function Kanban({ sort }: { sort: ApplicationSort }) {
+function Kanban({ sort, statuses }: { sort: ApplicationSort; statuses: ApplicationStatus[] }) {
   const pipeline = useQuery({
     queryKey: ["pipeline", sort],
     queryFn: () =>
@@ -132,7 +178,11 @@ function Kanban({ sort }: { sort: ApplicationSort }) {
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         <div className="flex items-start gap-3 overflow-x-auto pb-3">
           {pipeline.data?.columns
-            .filter((column) => column.status !== "closed")
+            .filter(
+              (column) =>
+                column.status !== "closed" &&
+                (statuses.length === 0 || statuses.includes(column.status)),
+            )
             .map((column) => (
               <KanbanColumn key={column.status} column={column} />
             ))}
@@ -204,9 +254,14 @@ function PriorityInput({ item }: { item: Summary }) {
   );
 }
 
-function ApplicationList({ sort }: { sort: ApplicationSort }) {
+function ApplicationList({
+  sort,
+  statuses,
+}: {
+  sort: ApplicationSort;
+  statuses: ApplicationStatus[];
+}) {
   const [query, setQuery] = useState("");
-  const [statuses, setStatuses] = useState<ApplicationStatus[]>([]);
   const [channel, setChannel] = useState<ApplicationChannel | "">("");
   const applications = useQuery({
     queryKey: ["applications", query, statuses, channel, sort],
@@ -248,30 +303,6 @@ function ApplicationList({ sort }: { sort: ApplicationSort }) {
           ))}
         </Select>
       </div>
-      <fieldset className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-        <legend className="sr-only">ステータス</legend>
-        {(Object.entries(STATUS_LABELS) as [ApplicationStatus, string][]).map(([value, label]) => (
-          <label key={value} className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={statuses.includes(value)}
-              onChange={(e) =>
-                setStatuses(
-                  e.target.checked
-                    ? [...statuses, value]
-                    : statuses.filter((status) => status !== value),
-                )
-              }
-            />
-            {label}
-          </label>
-        ))}
-        {statuses.length > 0 && (
-          <Button size="sm" variant="ghost" onClick={() => setStatuses([])}>
-            すべて解除
-          </Button>
-        )}
-      </fieldset>
       <Card className="overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-muted-foreground">
@@ -403,6 +434,7 @@ export function NewApplicationDialog({ companyId }: { companyId?: string }) {
 export function ApplicationsPage() {
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [sort, setSort] = useState<ApplicationSort>("updated_desc");
+  const [statuses, setStatuses] = useState(DEFAULT_STATUSES);
   return (
     <>
       <PageHeader title="応募">
@@ -434,7 +466,16 @@ export function ApplicationsPage() {
         </div>
         <NewApplicationDialog />
       </PageHeader>
-      {view === "kanban" ? <Kanban sort={sort} /> : <ApplicationList sort={sort} />}
+      <StatusFilter
+        value={statuses}
+        onChange={setStatuses}
+        exclude={view === "kanban" ? "closed" : undefined}
+      />
+      {view === "kanban" ? (
+        <Kanban sort={sort} statuses={statuses} />
+      ) : (
+        <ApplicationList sort={sort} statuses={statuses} />
+      )}
     </>
   );
 }
