@@ -433,7 +433,7 @@ export function NewApplicationDialog({ companyId }: { companyId?: string }) {
 
 export function ApplicationsPage() {
   const [view, setView] = useState<"kanban" | "list">("kanban");
-  const [sort, setSort] = useState<ApplicationSort>("updated_desc");
+  const [sort, setSort] = useState<ApplicationSort>("priority_desc");
   const [statuses, setStatuses] = useState(DEFAULT_STATUSES);
   return (
     <>
