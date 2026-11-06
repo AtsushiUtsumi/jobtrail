@@ -1,6 +1,6 @@
 from jobtrail.domain.application.value_objects import ApplicationStatus
 from jobtrail.schemas.analytics import GetPipelineInput, PipelineColumn, PipelineOutput
-from jobtrail.usecase.application.presenters import to_summary
+from jobtrail.usecase.application.presenters import sort_summaries, to_summary
 from jobtrail.usecase.context import AppContext
 
 
@@ -12,6 +12,6 @@ def get_pipeline(ctx: AppContext, data: GetPipelineInput) -> PipelineOutput:
     columns = []
     for status in statuses:
         items = [s for s in summaries if s.status is status]
-        items.sort(key=lambda s: s.updated_at, reverse=True)
+        sort_summaries(items, data.sort)
         columns.append(PipelineColumn(status=status, count=len(items), items=items))
     return PipelineOutput(columns=columns, total=sum(c.count for c in columns))

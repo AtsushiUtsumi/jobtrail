@@ -151,7 +151,7 @@ jobtrail/
 **InterviewLog は MVP では実装しない**【確定】。ドメイン・ユースケース・UI・MCP ツールから外す。面接で聞かれたことは Stage の `memo` に書く運用。Stage は ID を持つエンティティのままにし、後から `ApplicationId + StageId` 参照で追加できるようにしておく。
 
 ### 6.2 Company
-- 属性：`id, name, url, priority(志望度), memo, created_at, updated_at, deleted_at, version`
+- 属性：`id, name, url, memo, created_at, updated_at, deleted_at, version`
 - 不変条件：同一の社名（正規化後）または同一 URL の重複登録を防ぐ。論理削除と復元が可能。
 
 ### 6.3 CompanySource
@@ -164,7 +164,7 @@ jobtrail/
 - `extracted_fields`【暫定】：主要項目（`employee_count, founded_year, tech_stack[], remote_policy`）を固定キー、それ以外は自由 JSON（`extra`）。
 
 ### 6.4 Application（状態機械の中核）
-- 属性：`id, company_id, position(職種), channel, agent_name, applied_at, outcome, stages[], submitted_document_version_id, memo, created_at, updated_at, version`
+- 属性：`id, company_id, position(職種), channel, agent_name, priority(志望度。100 点満点の整数、既定は 50), applied_at, outcome, stages[], submitted_document_version_id, memo, created_at, updated_at, version`
 - `ApplicationChannel`：直接応募 / エージェント / スカウト / リファラル
 - `outcome`：進行中 / 内定承諾 / 内定辞退 / 落選 / 応募辞退 / 募集終了 / **見送り**（応募前に見送り）
 - **初期状態は「検討中」**【確定】：`stages` が空かつ `applied_at` が空。求人を保存しただけの段階も Application として扱う。`apply(applied_at)` で「書類選考」へ遷移。
@@ -223,13 +223,13 @@ jobtrail/
 
 ### 企業
 - ★ `register_company`, `update_company`, `delete_company`（論理）, `restore_company`
-- ★ `find_companies`（社名・志望度・状態で検索。**ID 解決用**）, `get_company`
+- ★ `find_companies`（社名・状態で検索。**ID 解決用**）, `get_company`
 - ★ `save_company_source`, `get_company_sources`, `get_company_source`（本文つき）, `update_company_source_summary`（再要約）, `find_stale_company_sources`（取得から一定日数経過）
 
 ### 応募
 - ★ `add_application`（企業＋職種＋経路。企業が未登録なら同時作成。**まず `find_companies` で検索させ、見つからなければ作成するようツール説明文で誘導**）
 - ★ `update_application`（部分更新）, `apply`, `close_application`, `reopen_application`
-- ★ `find_applications`（ステータス・企業・経路・期間）, `get_application`（Stage・求人票・提出情報を含む）
+- ★ `find_applications`（ステータス・企業・経路・期間・志望度。既定は更新順で `sort` で志望度順に変更可）, `get_application`（Stage・求人票・提出情報を含む）
 - ★ `advance_stage`（Stage 追加）, `record_stage_result`, `reschedule_stage`, `update_stage_memo`
 - ★ `save_job_posting`, `get_job_postings`, `get_job_posting`（本文つき）, `update_job_posting_summary`
 
@@ -243,7 +243,7 @@ jobtrail/
 - ★ `record_submission`, `list_submissions`, `get_submission`
 
 ### 分析（読み取り専用・集約を経由せず直接クエリ）
-- ★ `get_pipeline`：ステータス別の応募一覧（カンバン用）
+- ★ `get_pipeline`：ステータス別の応募一覧（カンバン用）。既定は更新順で `sort` で志望度順に変更可
 - ★ `get_stats`：ステージ別通過率、応募から内定までの日数、経路別比較。**分母は応募済み以降のみ（検討中・見送りは除外）**
 - ★ `get_next_actions`：近日（既定 7 日以内）の予定、結果待ちが長い応募（既定 7 日超）、古い企業情報（既定 90 日超）、提出書類が未紐づけの応募。閾値は `config.py`
 - ☆ 企業間の比較表（抽出フィールドの並列表示）、書類の版間差分

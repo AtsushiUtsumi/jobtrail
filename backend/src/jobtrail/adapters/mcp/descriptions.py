@@ -12,6 +12,8 @@ jobtrail は転職活動のデータを保持するサーバーです。要約�
 GUIDANCE: dict[str, str] = {
     "register_company": "登録前に必ず find_companies で既存の企業を検索してください。",
     "find_companies": "社名から company_id を解決するために使います。",
+    "find_applications": "志望度順に見るときは sort=priority_desc を指定します。",
+    "get_pipeline": "各列を志望度順に見るときは sort=priority_desc を指定します。",
     "add_application": (
         "先に find_companies で検索し、見つかれば company_id を、"
         "見つからなければ new_company を渡してください。"

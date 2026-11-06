@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+from jobtrail.domain.application.repository import ApplicationSort
 from jobtrail.domain.application.stage import StageType
 from jobtrail.domain.application.value_objects import ApplicationChannel, ApplicationStatus
 from jobtrail.schemas.application import ApplicationSummary
@@ -9,6 +10,10 @@ from jobtrail.schemas.company import CompanySourceOutput
 
 class GetPipelineInput(InputModel):
     include_closed: bool = True
+    sort: ApplicationSort = Field(
+        default=ApplicationSort.UPDATED_DESC,
+        description="各列の並び順。同点なら更新が新しい順",
+    )
 
 
 class PipelineColumn(BaseModel):

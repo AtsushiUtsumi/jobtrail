@@ -4,6 +4,7 @@ from uuid import UUID
 import pytest
 from pydantic import ValidationError
 
+from jobtrail.domain.application.repository import ApplicationSort
 from jobtrail.domain.application.stage import StageResult, StageType
 from jobtrail.domain.application.value_objects import (
     ApplicationChannel,
@@ -244,3 +245,57 @@ def test_get_application_includes_postings(ctx: AppContext) -> None:
     posting(ctx, target.id)
     detail = application.get_application(ctx, GetApplicationInput(application_id=target.id))
     assert len(detail.job_postings) == 1
+
+
+def test_priority_is_set_per_application_of_the_same_company(ctx: AppContext) -> None:
+    first = new_application(ctx, priority=90)
+    second = application.add_application(
+        ctx, AddApplicationInput(company_id=first.company_id, position="SRE", priority=60)
+    )
+    assert (first.priority, second.priority) == (90, 60)
+    assert (
+        application.get_application(ctx, GetApplicationInput(application_id=first.id)).priority
+        == 90
+    )
+
+
+def test_priority_defaults_to_50(ctx: AppContext) -> None:
+    assert new_application(ctx).priority == 50
+
+
+def test_priority_can_be_changed_but_not_cleared(ctx: AppContext) -> None:
+    created = new_application(ctx, priority=0)
+    kept = application.update_application(
+        ctx, UpdateApplicationInput(application_id=created.id, memo="x")
+    )
+    assert kept.priority == 0
+    changed = application.update_application(
+        ctx, UpdateApplicationInput(application_id=created.id, priority=70)
+    )
+    assert changed.priority == 70
+    ignored = application.update_application(
+        ctx, UpdateApplicationInput(application_id=created.id, priority=None)
+    )
+    assert ignored.priority == 70
+
+
+def test_find_sorts_by_priority(ctx: AppContext) -> None:
+    for name, priority in (("低", 0), ("高", 100), ("中", 55)):
+        new_application(ctx, name, priority=priority)
+
+    def names(**values) -> list[str]:  # type: ignore[no-untyped-def]
+        found = application.find_applications(ctx, FindApplicationsInput(**values))
+        return [a.company_name for a in found.items]
+
+    assert names(sort=ApplicationSort.PRIORITY_DESC) == ["高", "中", "低"]
+    assert names(sort=ApplicationSort.PRIORITY_ASC) == ["低", "中", "高"]
+    assert names()[0] == "中"
+    assert names(min_priority=55, sort=ApplicationSort.PRIORITY_DESC) == ["高", "中"]
+
+
+@pytest.mark.parametrize("priority", [-1, 101])
+def test_priority_must_be_within_100_points(priority: int) -> None:
+    with pytest.raises(ValidationError):
+        AddApplicationInput(
+            new_company=NewCompanyInput(name="A社"), position="SWE", priority=priority
+        )

@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from enum import StrEnum
 from typing import Protocol
 
 from jobtrail.domain.application.application import Application
@@ -14,6 +15,12 @@ from jobtrail.domain.shared.ids import (
     JobPostingId,
     StageId,
 )
+
+
+class ApplicationSort(StrEnum):
+    UPDATED_DESC = "updated_desc"
+    PRIORITY_DESC = "priority_desc"
+    PRIORITY_ASC = "priority_asc"
 
 
 @dataclass(frozen=True)
@@ -39,6 +46,7 @@ class ApplicationRow:
     applied_at: datetime | None
     outcome: Outcome
     submitted_document_version_id: DocumentVersionId | None
+    priority: int
     created_at: datetime
     updated_at: datetime
     version: int

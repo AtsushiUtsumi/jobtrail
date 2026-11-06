@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { useAction } from "@/hooks/useAction";
-import { numberOrNull, text, textOrNull } from "@/lib/format";
+import { text, textOrNull } from "@/lib/format";
 
 type CompanyState = Schemas["CompanyState"];
 
@@ -22,7 +22,6 @@ function NewCompanyDialog() {
         body: {
           name: text(form, "name"),
           url: textOrNull(form, "url"),
-          priority: numberOrNull(form, "priority"),
           memo: text(form, "memo"),
         },
       }),
@@ -52,9 +51,6 @@ function NewCompanyDialog() {
         </Field>
         <Field label="URL">
           <Input name="url" type="url" />
-        </Field>
-        <Field label="志望度（1〜5）">
-          <Input name="priority" type="number" min={1} max={5} />
         </Field>
         <Field label="メモ">
           <Textarea name="memo" />
@@ -108,7 +104,6 @@ export function CompaniesPage() {
           <thead className="text-left text-xs text-muted-foreground">
             <tr>
               <th className="p-3 font-normal">社名</th>
-              <th className="p-3 font-normal">志望度</th>
               <th className="p-3 font-normal">URL</th>
             </tr>
           </thead>
@@ -121,7 +116,6 @@ export function CompaniesPage() {
                   </Link>
                   {company.deleted_at && <Badge className="ml-2">削除済み</Badge>}
                 </td>
-                <td className="p-3 tabular-nums">{company.priority ?? "—"}</td>
                 <td className="max-w-80 truncate p-3 text-muted-foreground">
                   {company.url ?? "—"}
                 </td>

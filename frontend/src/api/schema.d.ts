@@ -32,8 +32,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 社名・志望度・状態で企業を検索する。
-         * @description 社名・志望度・状態で企業を検索する。
+         * 社名・状態で企業を検索する。
+         * @description 社名・状態で企業を検索する。
          */
         get: operations["find_companies"];
         put?: never;
@@ -172,8 +172,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * ステータス・企業・経路・応募日の期間・キーワードで応募を検索する。
-         * @description ステータス・企業・経路・応募日の期間・キーワードで応募を検索する。
+         * ステータス・企業・経路・応募日の期間・キーワード・志望度で応募を検索する。
+         * @description ステータス・企業・経路・応募日の期間・キーワード・志望度で応募を検索する。
          */
         get: operations["find_applications"];
         put?: never;
@@ -206,8 +206,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * 応募の職種・経路・エージェント名・メモを部分更新する。
-         * @description 応募の職種・経路・エージェント名・メモを部分更新する。
+         * 応募の職種・経路・エージェント名・志望度・メモを部分更新する。
+         * @description 応募の職種・経路・エージェント名・志望度・メモを部分更新する。
          */
         patch: operations["update_application"];
         trace?: never;
@@ -849,6 +849,12 @@ export interface components {
             /** Agent Name */
             agent_name?: string | null;
             /**
+             * Priority
+             * @description 志望度（100 点満点）
+             * @default 50
+             */
+            priority?: number;
+            /**
              * Memo
              * @default
              */
@@ -1003,6 +1009,8 @@ export interface components {
             channel: components["schemas"]["ApplicationChannel"];
             /** Agent Name */
             agent_name: string | null;
+            /** Priority */
+            priority: number;
             /** Applied At */
             applied_at: string | null;
             outcome: components["schemas"]["Outcome"];
@@ -1050,6 +1058,8 @@ export interface components {
             channel: components["schemas"]["ApplicationChannel"];
             /** Agent Name */
             agent_name: string | null;
+            /** Priority */
+            priority: number;
             /** Applied At */
             applied_at: string | null;
             outcome: components["schemas"]["Outcome"];
@@ -1075,6 +1085,11 @@ export interface components {
             version: number;
         };
         /**
+         * ApplicationSort
+         * @enum {string}
+         */
+        ApplicationSort: "updated_desc" | "priority_desc" | "priority_asc";
+        /**
          * ApplicationStatus
          * @enum {string}
          */
@@ -1099,6 +1114,8 @@ export interface components {
             /** Position */
             position: string;
             channel: components["schemas"]["ApplicationChannel"];
+            /** Priority */
+            priority: number;
             /** Applied At */
             applied_at: string | null;
             outcome: components["schemas"]["Outcome"];
@@ -1261,8 +1278,6 @@ export interface components {
             name: string;
             /** Url */
             url: string | null;
-            /** Priority */
-            priority: number | null;
             /** Memo */
             memo: string;
             /**
@@ -1617,8 +1632,6 @@ export interface components {
             name: string;
             /** Url */
             url?: string | null;
-            /** Priority */
-            priority?: number | null;
         };
         /** NextActionsOutput */
         NextActionsOutput: {
@@ -1856,8 +1869,6 @@ export interface components {
             name: string;
             /** Url */
             url?: string | null;
-            /** Priority */
-            priority?: number | null;
             /**
              * Memo
              * @default
@@ -2150,6 +2161,8 @@ export interface components {
             channel?: components["schemas"]["ApplicationChannel"] | null;
             /** Agent Name */
             agent_name?: string | null;
+            /** Priority */
+            priority?: number | null;
             /** Memo */
             memo?: string | null;
             /** Expected Version */
@@ -2197,8 +2210,6 @@ export interface components {
             name?: string | null;
             /** Url */
             url?: string | null;
-            /** Priority */
-            priority?: number | null;
             /** Memo */
             memo?: string | null;
             /** Expected Version */
@@ -2324,7 +2335,6 @@ export interface operations {
                 limit?: number;
                 offset?: number;
                 query?: string | null;
-                min_priority?: number | null;
                 state?: components["schemas"]["CompanyState"];
             };
             header?: never;
@@ -2702,6 +2712,8 @@ export interface operations {
                 applied_from?: string | null;
                 applied_to?: string | null;
                 query?: string | null;
+                min_priority?: number | null;
+                sort?: components["schemas"]["ApplicationSort"];
             };
             header?: never;
             path?: never;
@@ -3979,6 +3991,7 @@ export interface operations {
         parameters: {
             query?: {
                 include_closed?: boolean;
+                sort?: components["schemas"]["ApplicationSort"];
             };
             header?: never;
             path?: never;

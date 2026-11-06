@@ -63,10 +63,10 @@ def test_concurrent_updates_with_same_expected_version_let_one_win(ctx: AppConte
 
 def test_unique_index_catches_duplicates_that_pass_the_check(ctx: AppContext) -> None:
     with ctx.uow_factory() as uow:
-        uow.companies.add(Company.register("アクメ", None, None, "", NOW))
+        uow.companies.add(Company.register("アクメ", None, "", NOW))
         uow.commit()
     with ctx.uow_factory() as uow, pytest.raises(DuplicateCompanyError):
-        uow.companies.add(Company.register("株式会社アクメ", None, None, "", NOW))
+        uow.companies.add(Company.register("株式会社アクメ", None, "", NOW))
         uow.commit()
 
 

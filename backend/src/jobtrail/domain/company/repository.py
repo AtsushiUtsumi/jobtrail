@@ -29,7 +29,6 @@ class CompanyRepository(Protocol):
     def search(
         self,
         query: str | None,
-        min_priority: int | None,
         state: CompanyState,
         limit: int,
         offset: int,

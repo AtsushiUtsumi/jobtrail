@@ -75,3 +75,26 @@ def test_unknown_tool_is_reported(client: TestClient) -> None:
 def test_data_written_over_mcp_is_visible_over_rest(client: TestClient) -> None:
     call(client, "add_application", new_company={"name": "アクメ"}, position="SWE")
     assert client.get("/api/applications").json()["items"][0]["company_name"] == "アクメ"
+
+
+def test_find_applications_by_priority(client: TestClient) -> None:
+    for name, priority in (("低", 10), ("高", 90)):
+        call(
+            client, "add_application", new_company={"name": name}, position="SWE", priority=priority
+        )
+    _, body = call(client, "find_applications", sort="priority_desc")
+    assert [(a["company_name"], a["priority"]) for a in body["items"]] == [("高", 90), ("低", 10)]
+
+
+def test_update_application_changes_priority(client: TestClient) -> None:
+    _, created = call(client, "add_application", new_company={"name": "アクメ"}, position="SWE")
+    assert created["priority"] == 50
+    is_error, updated = call(
+        client, "update_application", application_id=created["id"], priority=85
+    )
+    assert (is_error, updated["priority"]) == (False, 85)
+    _, found = call(client, "get_application", application_id=created["id"])
+    assert found["priority"] == 85
+    is_error, body = call(client, "update_application", application_id=created["id"], priority=101)
+    assert is_error is True
+    assert body["code"] == "VALIDATION_ERROR"

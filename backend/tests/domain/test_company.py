@@ -59,7 +59,7 @@ def test_check_version() -> None:
 
 
 def company() -> Company:
-    return Company.register("株式会社アクメ", "https://acme.example/", 3, "", NOW)
+    return Company.register("株式会社アクメ", "https://acme.example/", "", NOW)
 
 
 def test_delete_and_restore() -> None:

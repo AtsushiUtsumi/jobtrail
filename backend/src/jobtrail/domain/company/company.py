@@ -14,7 +14,6 @@ class Company:
     normalized_name: str
     url: str | None
     normalized_url: str | None
-    priority: int | None
     memo: str
     created_at: datetime
     updated_at: datetime
@@ -22,16 +21,13 @@ class Company:
     version: int = 0
 
     @classmethod
-    def register(
-        cls, name: str, url: str | None, priority: int | None, memo: str, now: datetime
-    ) -> "Company":
+    def register(cls, name: str, url: str | None, memo: str, now: datetime) -> "Company":
         return cls(
             id=new_id(),
             name=name,
             normalized_name=normalize_company_name(name),
             url=url,
             normalized_url=normalize_url(url) if url else None,
-            priority=priority,
             memo=memo,
             created_at=now,
             updated_at=now,
@@ -49,8 +45,6 @@ class Company:
         if "url" in changes:
             self.url = changes["url"]
             self.normalized_url = normalize_url(self.url) if self.url else None
-        if "priority" in changes:
-            self.priority = changes["priority"]
         if "memo" in changes:
             self.memo = changes["memo"]
         self.updated_at = now

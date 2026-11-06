@@ -1,6 +1,8 @@
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
+from jobtrail.domain.application.repository import ApplicationSort
 from jobtrail.domain.application.stage import StageResult, StageType
 from jobtrail.domain.application.value_objects import (
     ApplicationChannel,
@@ -191,3 +193,17 @@ def test_closed_application_is_not_listed_as_upcoming(ctx: AppContext) -> None:
         clock, CloseApplicationInput(application_id=target.id, outcome=Outcome.WITHDRAWN)
     )
     assert get_next_actions(clock, GetNextActionsInput()).upcoming_stages == []
+
+
+def test_pipeline_columns_sort_by_priority(ctx: AppContext) -> None:
+    for name, priority in (("低", 10), ("高", 90), ("中", 50)):
+        new_application(ctx, name, priority=priority)
+
+    def considering(**values: Any) -> list[str]:
+        pipeline = get_pipeline(ctx, GetPipelineInput(**values))
+        column = next(c for c in pipeline.columns if c.status is ApplicationStatus.CONSIDERING)
+        return [item.company_name for item in column.items]
+
+    assert considering() == ["中", "高", "低"]
+    assert considering(sort=ApplicationSort.PRIORITY_DESC) == ["高", "中", "低"]
+    assert considering(sort=ApplicationSort.PRIORITY_ASC) == ["低", "中", "高"]

@@ -76,12 +76,12 @@ def test_rename_to_existing_company_is_rejected(ctx: AppContext) -> None:
 
 def test_update_is_partial_and_can_clear_nullable(ctx: AppContext) -> None:
     created = company.register_company(
-        ctx, RegisterCompanyInput(name="A社", url="https://a.example", priority=3, memo="m")
+        ctx, RegisterCompanyInput(name="A社", url="https://a.example", memo="m")
     )
     updated = company.update_company(
         ctx, UpdateCompanyInput(company_id=created.id, url=None, memo=None)
     )
-    assert (updated.name, updated.url, updated.priority, updated.memo) == ("A社", None, 3, "m")
+    assert (updated.name, updated.url, updated.memo) == ("A社", None, "m")
     assert updated.version == created.version + 1
 
 
@@ -95,22 +95,20 @@ def test_expected_version_is_verified_when_given(ctx: AppContext) -> None:
         )
 
 
-def test_find_filters_by_name_priority_and_state(ctx: AppContext) -> None:
-    company.register_company(ctx, RegisterCompanyInput(name="株式会社アクメ", priority=5))
-    low = company.register_company(ctx, RegisterCompanyInput(name="ベータ", priority=1))
+def test_find_filters_by_name_and_state(ctx: AppContext) -> None:
+    register(ctx)
+    register(ctx, "ベータ")
     deleted = register(ctx, "ガンマ")
     company.delete_company(ctx, CompanyVersionInput(company_id=deleted.id))
 
     assert company.find_companies(ctx, FindCompaniesInput(query="アクメ")).total == 1
     assert company.find_companies(ctx, FindCompaniesInput(query="100%")).total == 0
-    assert company.find_companies(ctx, FindCompaniesInput(min_priority=3)).total == 1
     assert company.find_companies(ctx, FindCompaniesInput()).total == 2
     assert company.find_companies(ctx, FindCompaniesInput(state=CompanyState.ALL)).total == 3
     only_deleted = company.find_companies(ctx, FindCompaniesInput(state=CompanyState.DELETED))
     assert [c.id for c in only_deleted.items] == [deleted.id]
     paged = company.find_companies(ctx, FindCompaniesInput(limit=1, offset=1))
     assert (len(paged.items), paged.total) == (1, 2)
-    assert paged.items[0].id == low.id
 
 
 def test_deleted_company_can_still_be_fetched(ctx: AppContext) -> None:

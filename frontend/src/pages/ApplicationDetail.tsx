@@ -135,6 +135,7 @@ function DetailsForm({ application }: { application: Application }) {
           position: text(form, "position"),
           channel: text(form, "channel") as ApplicationChannel,
           agent_name: textOrNull(form, "agent_name"),
+          priority: Number(text(form, "priority")),
           memo: text(form, "memo"),
           expected_version: application.version,
         },
@@ -165,6 +166,16 @@ function DetailsForm({ application }: { application: Application }) {
         </Field>
         <Field label="エージェント名">
           <Input name="agent_name" defaultValue={application.agent_name ?? ""} />
+        </Field>
+        <Field label="志望度（0〜100）">
+          <Input
+            name="priority"
+            type="number"
+            min={0}
+            max={100}
+            defaultValue={application.priority}
+            required
+          />
         </Field>
         <Field label="メモ">
           <Textarea name="memo" defaultValue={application.memo} />

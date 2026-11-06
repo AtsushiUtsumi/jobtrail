@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { useAction } from "@/hooks/useAction";
-import { formatDate, numberOrNull, text, textOrNull } from "@/lib/format";
+import { formatDate, text, textOrNull } from "@/lib/format";
 import { SOURCE_TYPE_LABELS } from "@/lib/labels";
 import { NewApplicationDialog } from "@/pages/Applications";
 
@@ -24,7 +24,6 @@ function CompanyForm({ company }: { company: Company }) {
         body: {
           name: text(form, "name"),
           url: textOrNull(form, "url"),
-          priority: numberOrNull(form, "priority"),
           memo: text(form, "memo"),
           expected_version: company.version,
         },
@@ -47,15 +46,6 @@ function CompanyForm({ company }: { company: Company }) {
           </Field>
           <Field label="URL">
             <Input name="url" type="url" defaultValue={company.url ?? ""} />
-          </Field>
-          <Field label="志望度（1〜5）">
-            <Input
-              name="priority"
-              type="number"
-              min={1}
-              max={5}
-              defaultValue={company.priority ?? ""}
-            />
           </Field>
           <Field label="メモ">
             <Textarea name="memo" defaultValue={company.memo} />

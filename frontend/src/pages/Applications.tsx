@@ -36,6 +36,7 @@ import {
 import { cn } from "@/lib/utils";
 
 type Summary = Schemas["ApplicationSummary"];
+type ApplicationSort = Schemas["ApplicationSort"];
 
 function KanbanCard({ item }: { item: Summary }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -59,7 +60,10 @@ function KanbanCard({ item }: { item: Summary }) {
       <Link to={`/applications/${item.id}`} className="font-medium hover:underline">
         {item.company_name}
       </Link>
-      <div className="text-xs text-muted-foreground">{item.position}</div>
+      <div className="text-xs text-muted-foreground">
+        {item.position}
+        <span className="tabular-nums"> ・ 志望度 {item.priority}</span>
+      </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
         <StatusBadge item={item} />
         {item.next_scheduled_at && (
@@ -93,11 +97,13 @@ function KanbanColumn({ column }: { column: Schemas["PipelineColumn"] }) {
   );
 }
 
-function Kanban() {
+function Kanban({ sort }: { sort: ApplicationSort }) {
   const pipeline = useQuery({
-    queryKey: ["pipeline"],
+    queryKey: ["pipeline", sort],
     queryFn: () =>
-      unwrap(api.GET("/api/analytics/pipeline", { params: { query: { include_closed: true } } })),
+      unwrap(
+        api.GET("/api/analytics/pipeline", { params: { query: { include_closed: true, sort } } }),
+      ),
   });
   const [advancing, setAdvancing] = useState<{ item: Summary; target: ApplicationStatus }>();
   const [closing, setClosing] = useState<{ item: Summary; target: ApplicationStatus }>();
@@ -155,12 +161,55 @@ function Kanban() {
   );
 }
 
-function ApplicationList() {
+/** 欄を離れるか Enter で保存する。不正な値や保存の失敗は元の点数へ戻す。 */
+function PriorityInput({ item }: { item: Summary }) {
+  const update = useAction((priority: number) =>
+    unwrap(
+      api.PATCH("/api/applications/{application_id}", {
+        params: { path: { application_id: item.id } },
+        body: { priority, expected_version: item.version },
+      }),
+    ),
+  );
+
+  function save(input: HTMLInputElement) {
+    const priority = input.valueAsNumber;
+    if (priority === item.priority) return;
+    const reset = () => {
+      input.value = String(item.priority);
+    };
+    if (!Number.isInteger(priority) || priority < 0 || priority > 100) {
+      reset();
+      toast.error("志望度は 0〜100 の整数で入力してください。");
+      return;
+    }
+    update.mutate(priority, { onError: reset });
+  }
+
+  return (
+    <Input
+      key={item.version}
+      aria-label={`${item.company_name} ${item.position} の志望度`}
+      className="h-8 w-20 tabular-nums"
+      type="number"
+      min={0}
+      max={100}
+      defaultValue={item.priority}
+      disabled={update.isPending}
+      onBlur={(e) => save(e.target)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+      }}
+    />
+  );
+}
+
+function ApplicationList({ sort }: { sort: ApplicationSort }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<ApplicationStatus | "">("");
   const [channel, setChannel] = useState<ApplicationChannel | "">("");
   const applications = useQuery({
-    queryKey: ["applications", query, status, channel],
+    queryKey: ["applications", query, status, channel, sort],
     queryFn: () =>
       unwrap(
         api.GET("/api/applications", {
@@ -169,6 +218,7 @@ function ApplicationList() {
               query: query || undefined,
               status: status || undefined,
               channel: channel || undefined,
+              sort,
               limit: 200,
             },
           },
@@ -216,6 +266,7 @@ function ApplicationList() {
             <tr>
               <th className="p-3 font-normal">企業</th>
               <th className="p-3 font-normal">職種</th>
+              <th className="p-3 font-normal">志望度</th>
               <th className="p-3 font-normal">ステータス</th>
               <th className="p-3 font-normal">経路</th>
               <th className="p-3 font-normal">応募日</th>
@@ -230,6 +281,9 @@ function ApplicationList() {
                   </Link>
                 </td>
                 <td className="p-3">{item.position}</td>
+                <td className="p-3">
+                  <PriorityInput item={item} />
+                </td>
                 <td className="p-3">
                   <StatusBadge item={item} />
                 </td>
@@ -265,6 +319,7 @@ export function NewApplicationDialog({ companyId }: { companyId?: string }) {
           position: text(form, "position"),
           channel: text(form, "channel") as ApplicationChannel,
           agent_name: textOrNull(form, "agent_name"),
+          priority: Number(text(form, "priority")),
         },
       }),
     );
@@ -322,6 +377,9 @@ export function NewApplicationDialog({ companyId }: { companyId?: string }) {
         <Field label="エージェント名（任意）">
           <Input name="agent_name" />
         </Field>
+        <Field label="志望度（0〜100）">
+          <Input name="priority" type="number" min={0} max={100} defaultValue={50} required />
+        </Field>
         <Button type="submit" disabled={action.isPending}>
           追加
         </Button>
@@ -332,9 +390,20 @@ export function NewApplicationDialog({ companyId }: { companyId?: string }) {
 
 export function ApplicationsPage() {
   const [view, setView] = useState<"kanban" | "list">("kanban");
+  const [sort, setSort] = useState<ApplicationSort>("updated_desc");
   return (
     <>
       <PageHeader title="応募">
+        <Select
+          aria-label="並び順"
+          className="w-40"
+          value={sort}
+          onChange={(e) => setSort(e.target.value as ApplicationSort)}
+        >
+          <option value="updated_desc">更新が新しい順</option>
+          <option value="priority_desc">志望度が高い順</option>
+          <option value="priority_asc">志望度が低い順</option>
+        </Select>
         <div className="flex rounded-md border p-0.5">
           <Button
             size="sm"
@@ -353,7 +422,7 @@ export function ApplicationsPage() {
         </div>
         <NewApplicationDialog />
       </PageHeader>
-      {view === "kanban" ? <Kanban /> : <ApplicationList />}
+      {view === "kanban" ? <Kanban sort={sort} /> : <ApplicationList sort={sort} />}
     </>
   );
 }

@@ -22,7 +22,7 @@ from jobtrail.schemas.application import (
     UpdateStageMemoInput,
 )
 from jobtrail.schemas.common import Page
-from jobtrail.usecase.application.presenters import to_output, to_summary
+from jobtrail.usecase.application.presenters import sort_summaries, to_output, to_summary
 from jobtrail.usecase.company.commands import create_company, load_company
 from jobtrail.usecase.context import AppContext, UnitOfWork, changes_of
 
@@ -64,9 +64,15 @@ def add_application(ctx: AppContext, data: AddApplicationInput) -> ApplicationOu
         else:
             assert data.new_company is not None
             new = data.new_company
-            company = create_company(ctx, uow, new.name, new.url, new.priority, "")
+            company = create_company(ctx, uow, new.name, new.url, "")
         application = Application.consider(
-            company.id, data.position, data.channel, data.agent_name, data.memo, ctx.now()
+            company.id,
+            data.position,
+            data.channel,
+            data.agent_name,
+            data.memo,
+            ctx.now(),
+            data.priority,
         )
         uow.applications.add(application)
         uow.commit()
@@ -74,7 +80,7 @@ def add_application(ctx: AppContext, data: AddApplicationInput) -> ApplicationOu
 
 
 def update_application(ctx: AppContext, data: UpdateApplicationInput) -> ApplicationOutput:
-    """応募の職種・経路・エージェント名・メモを部分更新する。"""
+    """応募の職種・経路・エージェント名・志望度・メモを部分更新する。"""
     changes = changes_of(data, "application_id", nullable=frozenset({"agent_name"}))
     return _mutate(
         ctx,
@@ -150,7 +156,7 @@ def update_stage_memo(ctx: AppContext, data: UpdateStageMemoInput) -> Applicatio
 
 
 def find_applications(ctx: AppContext, data: FindApplicationsInput) -> Page[ApplicationSummary]:
-    """ステータス・企業・経路・応募日の期間・キーワードで応募を検索する。"""
+    """ステータス・企業・経路・応募日の期間・キーワード・志望度で応募を検索する。"""
     needle = data.query.casefold() if data.query else None
     with ctx.uow_factory() as uow:
         rows = [
@@ -159,6 +165,7 @@ def find_applications(ctx: AppContext, data: FindApplicationsInput) -> Page[Appl
             if (data.company_id is None or row.company_id == data.company_id)
             and (data.channel is None or row.channel is data.channel)
             and (data.outcome is None or row.outcome is data.outcome)
+            and (data.min_priority is None or row.priority >= data.min_priority)
             and (
                 data.applied_from is None
                 or (row.applied_at is not None and row.applied_at >= data.applied_from)
@@ -176,7 +183,7 @@ def find_applications(ctx: AppContext, data: FindApplicationsInput) -> Page[Appl
     summaries = [to_summary(row) for row in rows]
     if data.status is not None:
         summaries = [s for s in summaries if s.status is data.status]
-    summaries.sort(key=lambda s: s.updated_at, reverse=True)
+    sort_summaries(summaries, data.sort)
     return Page(
         items=summaries[data.offset : data.offset + data.limit],
         total=len(summaries),

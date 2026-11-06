@@ -38,9 +38,9 @@ def load_company(uow: UnitOfWork, company_id: UUID) -> Company:
 
 
 def create_company(
-    ctx: AppContext, uow: UnitOfWork, name: str, url: str | None, priority: int | None, memo: str
+    ctx: AppContext, uow: UnitOfWork, name: str, url: str | None, memo: str
 ) -> Company:
-    company = Company.register(name, url, priority, memo, ctx.now())
+    company = Company.register(name, url, memo, ctx.now())
     _ensure_unique(uow, company)
     uow.companies.add(company)
     return company
@@ -57,7 +57,7 @@ def _ensure_unique(uow: UnitOfWork, company: Company) -> None:
 def register_company(ctx: AppContext, data: RegisterCompanyInput) -> CompanyOutput:
     """企業を登録する。"""
     with ctx.uow_factory() as uow:
-        company = create_company(ctx, uow, data.name, data.url, data.priority, data.memo)
+        company = create_company(ctx, uow, data.name, data.url, data.memo)
         uow.commit()
         return CompanyOutput.model_validate(company)
 
@@ -69,7 +69,7 @@ def update_company(ctx: AppContext, data: UpdateCompanyInput) -> CompanyOutput:
         check_version(company.version, data.expected_version)
         company.update(
             ctx.now(),
-            **changes_of(data, "company_id", nullable=frozenset({"url", "priority"})),
+            **changes_of(data, "company_id", nullable=frozenset({"url"})),
         )
         _ensure_unique(uow, company)
         uow.commit()
@@ -98,11 +98,9 @@ def restore_company(ctx: AppContext, data: CompanyVersionInput) -> CompanyOutput
 
 
 def find_companies(ctx: AppContext, data: FindCompaniesInput) -> Page[CompanyOutput]:
-    """社名・志望度・状態で企業を検索する。"""
+    """社名・状態で企業を検索する。"""
     with ctx.uow_factory() as uow:
-        items, total = uow.companies.search(
-            data.query, data.min_priority, data.state, data.limit, data.offset
-        )
+        items, total = uow.companies.search(data.query, data.state, data.limit, data.offset)
         return Page(
             items=[CompanyOutput.model_validate(c) for c in items],
             total=total,

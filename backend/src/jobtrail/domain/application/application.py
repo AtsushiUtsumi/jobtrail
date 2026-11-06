@@ -12,6 +12,8 @@ from jobtrail.domain.application.value_objects import (
 from jobtrail.domain.shared.errors import DomainError, ErrorKind, NotFoundError
 from jobtrail.domain.shared.ids import ApplicationId, CompanyId, DocumentVersionId, StageId, new_id
 
+DEFAULT_PRIORITY = 50
+
 _STATUS_BY_OUTCOME = {
     Outcome.REJECTED: ApplicationStatus.REJECTED,
     Outcome.OFFER_ACCEPTED: ApplicationStatus.OFFER_ACCEPTED,
@@ -66,6 +68,7 @@ class Application:
     updated_at: datetime
     stages: list[Stage] = field(default_factory=list)
     version: int = 0
+    priority: int = DEFAULT_PRIORITY
 
     @classmethod
     def consider(
@@ -76,6 +79,7 @@ class Application:
         agent_name: str | None,
         memo: str,
         now: datetime,
+        priority: int = DEFAULT_PRIORITY,
     ) -> "Application":
         """初期状態は検討中（stages も applied_at も空）。"""
         return cls(
@@ -87,6 +91,7 @@ class Application:
             applied_at=None,
             outcome=Outcome.IN_PROGRESS,
             submitted_document_version_id=None,
+            priority=priority,
             memo=memo,
             created_at=now,
             updated_at=now,
@@ -224,7 +229,7 @@ class Application:
         self.updated_at = now
 
     def update_details(self, now: datetime, **changes: Any) -> None:
-        for name in ("position", "channel", "agent_name", "memo"):
+        for name in ("position", "channel", "agent_name", "priority", "memo"):
             if name in changes:
                 setattr(self, name, changes[name])
         self.updated_at = now

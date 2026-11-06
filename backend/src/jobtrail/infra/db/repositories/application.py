@@ -59,6 +59,7 @@ class SqlApplicationReadRepository:
                 applied_at=row["applied_at"],
                 outcome=row["outcome"],
                 submitted_document_version_id=row["submitted_document_version_id"],
+                priority=row["priority"],
                 created_at=row["created_at"],
                 updated_at=row["updated_at"],
                 version=row["version"],

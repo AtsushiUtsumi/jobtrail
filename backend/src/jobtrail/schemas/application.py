@@ -1,9 +1,11 @@
 from datetime import datetime
-from typing import Any, Self
+from typing import Annotated, Any, Self
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
+from jobtrail.domain.application.application import DEFAULT_PRIORITY
+from jobtrail.domain.application.repository import ApplicationSort
 from jobtrail.domain.application.stage import StageResult, StageType
 from jobtrail.domain.application.value_objects import (
     ApplicationChannel,
@@ -14,13 +16,13 @@ from jobtrail.domain.application.value_objects import (
 from jobtrail.domain.company.company_source import AcquiredBy, SaveResult
 from jobtrail.domain.skill_profile.submission import SubmissionKind
 from jobtrail.schemas.common import InputModel, OutputModel, PageInput, Timestamp
-from jobtrail.schemas.company import Priority
+
+Priority = Annotated[int, Field(ge=0, le=100, description="志望度（100 点満点）")]
 
 
 class NewCompanyInput(InputModel):
     name: str = Field(min_length=1)
     url: str | None = None
-    priority: Priority | None = None
 
 
 class AddApplicationInput(InputModel):
@@ -29,6 +31,7 @@ class AddApplicationInput(InputModel):
     position: str = Field(min_length=1)
     channel: ApplicationChannel = ApplicationChannel.DIRECT
     agent_name: str | None = None
+    priority: Priority = DEFAULT_PRIORITY
     memo: str = ""
 
     @model_validator(mode="after")
@@ -43,6 +46,7 @@ class UpdateApplicationInput(InputModel):
     position: str | None = Field(default=None, min_length=1)
     channel: ApplicationChannel | None = None
     agent_name: str | None = None
+    priority: Priority | None = None
     memo: str | None = None
     expected_version: int | None = None
 
@@ -76,6 +80,11 @@ class FindApplicationsInput(PageInput):
     applied_from: Timestamp | None = None
     applied_to: Timestamp | None = None
     query: str | None = Field(default=None, description="社名・職種の部分一致")
+    min_priority: Priority | None = None
+    sort: ApplicationSort = Field(
+        default=ApplicationSort.UPDATED_DESC,
+        description="並び順。同点なら更新が新しい順",
+    )
 
 
 class AdvanceStageInput(InputModel):
@@ -128,6 +137,7 @@ class ApplicationSummary(BaseModel):
     company_name: str
     position: str
     channel: ApplicationChannel
+    priority: int
     applied_at: datetime | None
     outcome: Outcome
     status: ApplicationStatus
@@ -237,6 +247,7 @@ class ApplicationOutput(BaseModel):
     position: str
     channel: ApplicationChannel
     agent_name: str | None
+    priority: int
     applied_at: datetime | None
     outcome: Outcome
     status: ApplicationStatus

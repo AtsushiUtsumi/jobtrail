@@ -47,7 +47,6 @@ class SqlCompanyRepository:
     def search(
         self,
         query: str | None,
-        min_priority: int | None,
         state: CompanyState,
         limit: int,
         offset: int,
@@ -62,8 +61,6 @@ class SqlCompanyRepository:
                     ),
                 )
             )
-        if min_priority is not None:
-            conditions.append(companies.c.priority >= min_priority)
         if state is CompanyState.ACTIVE:
             conditions.append(companies.c.deleted_at.is_(None))
         elif state is CompanyState.DELETED:
@@ -74,7 +71,7 @@ class SqlCompanyRepository:
         items = self._session.scalars(
             sa.select(Company)
             .where(*conditions)
-            .order_by(companies.c.priority.desc().nulls_last(), companies.c.updated_at.desc())
+            .order_by(companies.c.updated_at.desc(), companies.c.id)
             .limit(limit)
             .offset(offset)
         ).all()

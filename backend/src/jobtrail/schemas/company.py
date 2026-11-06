@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -6,8 +6,6 @@ from pydantic import BaseModel, Field
 from jobtrail.domain.company.company_source import AcquiredBy, SaveResult, SourceType
 from jobtrail.domain.company.repository import CompanyState
 from jobtrail.schemas.common import InputModel, OutputModel, PageInput, Timestamp
-
-Priority = Annotated[int, Field(ge=1, le=5, description="志望度（1=低 〜 5=高）")]
 
 
 class ExtractedFields(BaseModel):
@@ -23,7 +21,6 @@ class ExtractedFields(BaseModel):
 class RegisterCompanyInput(InputModel):
     name: str = Field(min_length=1)
     url: str | None = None
-    priority: Priority | None = None
     memo: str = ""
 
 
@@ -31,7 +28,6 @@ class UpdateCompanyInput(InputModel):
     company_id: UUID
     name: str | None = Field(default=None, min_length=1)
     url: str | None = None
-    priority: Priority | None = None
     memo: str | None = None
     expected_version: int | None = None
 
@@ -47,7 +43,6 @@ class GetCompanyInput(InputModel):
 
 class FindCompaniesInput(PageInput):
     query: str | None = Field(default=None, description="社名の部分一致（表記ゆれを吸収）")
-    min_priority: Priority | None = None
     state: CompanyState = CompanyState.ACTIVE
 
 
@@ -55,7 +50,6 @@ class CompanyOutput(OutputModel):
     id: UUID
     name: str
     url: str | None
-    priority: int | None
     memo: str
     created_at: Timestamp
     updated_at: Timestamp

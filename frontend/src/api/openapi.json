@@ -73,8 +73,8 @@
         }
       },
       "get": {
-        "summary": "社名・志望度・状態で企業を検索する。",
-        "description": "社名・志望度・状態で企業を検索する。",
+        "summary": "社名・状態で企業を検索する。",
+        "description": "社名・状態で企業を検索する。",
         "operationId": "find_companies",
         "parameters": [
           {
@@ -111,25 +111,6 @@
                 }
               ],
               "title": "Query"
-            }
-          },
-          {
-            "name": "min_priority",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer",
-                  "maximum": 5,
-                  "minimum": 1,
-                  "description": "志望度（1=低 〜 5=高）"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Min Priority"
             }
           },
           {
@@ -687,8 +668,8 @@
         }
       },
       "get": {
-        "summary": "ステータス・企業・経路・応募日の期間・キーワードで応募を検索する。",
-        "description": "ステータス・企業・経路・応募日の期間・キーワードで応募を検索する。",
+        "summary": "ステータス・企業・経路・応募日の期間・キーワード・志望度で応募を検索する。",
+        "description": "ステータス・企業・経路・応募日の期間・キーワード・志望度で応募を検索する。",
         "operationId": "find_applications",
         "parameters": [
           {
@@ -825,6 +806,34 @@
               ],
               "title": "Query"
             }
+          },
+          {
+            "name": "min_priority",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 100,
+                  "minimum": 0,
+                  "description": "志望度（100 点満点）"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Priority"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ApplicationSort",
+              "default": "updated_desc"
+            }
           }
         ],
         "responses": {
@@ -892,8 +901,8 @@
         }
       },
       "patch": {
-        "summary": "応募の職種・経路・エージェント名・メモを部分更新する。",
-        "description": "応募の職種・経路・エージェント名・メモを部分更新する。",
+        "summary": "応募の職種・経路・エージェント名・志望度・メモを部分更新する。",
+        "description": "応募の職種・経路・エージェント名・志望度・メモを部分更新する。",
         "operationId": "update_application",
         "parameters": [
           {
@@ -2625,6 +2634,15 @@
               "default": true,
               "title": "Include Closed"
             }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ApplicationSort",
+              "default": "updated_desc"
+            }
           }
         ],
         "responses": {
@@ -2815,6 +2833,14 @@
               }
             ],
             "title": "Agent Name"
+          },
+          "priority": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Priority",
+            "description": "志望度（100 点満点）",
+            "default": 50
           },
           "memo": {
             "type": "string",
@@ -3196,6 +3222,10 @@
             ],
             "title": "Agent Name"
           },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
           "applied_at": {
             "anyOf": [
               {
@@ -3284,6 +3314,7 @@
           "position",
           "channel",
           "agent_name",
+          "priority",
           "applied_at",
           "outcome",
           "status",
@@ -3332,6 +3363,10 @@
               }
             ],
             "title": "Agent Name"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
           },
           "applied_at": {
             "anyOf": [
@@ -3407,6 +3442,7 @@
           "position",
           "channel",
           "agent_name",
+          "priority",
           "applied_at",
           "outcome",
           "status",
@@ -3419,6 +3455,15 @@
           "version"
         ],
         "title": "ApplicationOutput"
+      },
+      "ApplicationSort": {
+        "type": "string",
+        "enum": [
+          "updated_desc",
+          "priority_desc",
+          "priority_asc"
+        ],
+        "title": "ApplicationSort"
       },
       "ApplicationStatus": {
         "type": "string",
@@ -3459,6 +3504,10 @@
           },
           "channel": {
             "$ref": "#/components/schemas/ApplicationChannel"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
           },
           "applied_at": {
             "anyOf": [
@@ -3543,6 +3592,7 @@
           "company_name",
           "position",
           "channel",
+          "priority",
           "applied_at",
           "outcome",
           "status",
@@ -3902,17 +3952,6 @@
             ],
             "title": "Url"
           },
-          "priority": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Priority"
-          },
           "memo": {
             "type": "string",
             "title": "Memo"
@@ -3949,7 +3988,6 @@
           "id",
           "name",
           "url",
-          "priority",
           "memo",
           "created_at",
           "updated_at",
@@ -4741,20 +4779,6 @@
               }
             ],
             "title": "Url"
-          },
-          "priority": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "maximum": 5.0,
-                "minimum": 1.0,
-                "description": "志望度（1=低 〜 5=高）"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Priority"
           }
         },
         "additionalProperties": false,
@@ -5456,20 +5480,6 @@
               }
             ],
             "title": "Url"
-          },
-          "priority": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "maximum": 5.0,
-                "minimum": 1.0,
-                "description": "志望度（1=低 〜 5=高）"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Priority"
           },
           "memo": {
             "type": "string",
@@ -6279,6 +6289,20 @@
             ],
             "title": "Agent Name"
           },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "description": "志望度（100 点満点）"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
           "memo": {
             "anyOf": [
               {
@@ -6503,20 +6527,6 @@
               }
             ],
             "title": "Url"
-          },
-          "priority": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "maximum": 5.0,
-                "minimum": 1.0,
-                "description": "志望度（1=低 〜 5=高）"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Priority"
           },
           "memo": {
             "anyOf": [
